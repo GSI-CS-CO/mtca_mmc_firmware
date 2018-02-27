@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="FlashDialog">
+		<item value="true" key="jtag"/>
+		<item value="false" key="program_pages"/>
+		<item value="false" key="erase"/>
+		<item value="true" key="program_all"/>
+		<item value="false" key="erase_pages"/>
+		<item value="true" key="logFLag"/>
+		<item value="true" key="program"/>
+		<item value="100" key="id_speed"/>
+		<item value="&lt;Default&gt;," key="flashdriver"/>
+		<item value="false" key="clipboard"/>
+		<item value="" key="extended"/>
+		<item value="/home/ftrn/LPCXpresso/workspace/ftrn_mmc_2/LPC2136_FreeRTOS_CoreIPM/Debug/LPC2136_FreeRTOS_CoreIPM.axf," key="file"/>
+		<item value="true" key="erase_mass"/>
+		<item value="false" key="reopen"/>
+		<item value="false" key="repeat"/>
+		<item value="false" key="clipboard_exec"/>
+		<item value="false" key="exec"/>
+		<item value="" key="base"/>
+	</section>
+</section>

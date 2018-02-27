@@ -1,0 +1,528 @@
+/*
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *   @license GPL-3.0+ <http://spdx.org/licenses/GPL-3.0+>
+ */
+
+#include <stdio.h>
+#include <string.h>
+#include "timer.h"
+#include "lpc21nn.h"
+#include "module.h"
+#include "ipmi.h"
+#include "sensor.h"
+#include "i2c.h"
+#include "gpio.h"
+#include "../drivers/iopin.h"
+#include "../drivers/mmcio.h"
+#include "../payload.h"
+#include "../coreIPM/mmc.h"
+#include "../util/report.h"
+
+MGMT_CTRL_DEV_LOCATOR_RECORD g_SDR_MCDLS;
+
+/*==============================================================
+ * MMC ADDRESSING
+ *==============================================================*/
+/*
+3.2.1 Geographic Address [2..0] (GA[2..0]) the state of each GA signal is
+represented by G (grounded), U (unconnected), or P (pulled up to Management Power).
+
+The MMC drives P1 low and reads the GA lines. The MMC then drives P1 high and
+reads the GA lines. Any line that changes state between the two reads indicate
+an unconnected (U) pin.
+
+The IPMB-L address of a Module can be calculated as (70h + Site Number x 2).
+
+G = 0, P = 1, U = 2
+
+GGG	000	0	0x70
+GGP	001	1	0x8A
+GGU	002	2	0x72
+GPG	010	3	0x8E
+GPP	011	4	0x92
+GPU	012	5	0x90
+GUG	020	6	0x74
+GUP	021	7	0x8C
+GUU	022	8	0x76
+PGG	100	9	0x98
+PGP	101	10	0x9C
+PGU	102	11	0x9A
+PPG	110	12	0xA0
+PPP	111	13	0xA4
+PPU	112	14	0x88
+PUG	120	15	0x9E
+PUP	121	16	0x86
+PUU	122	17	0x84
+UGG	200	18	0x78
+UGP	201	19	0x94
+UGU	202	20	0x7A
+UPG	210	21	0x96
+UPP	211	22	0x82
+UPU	212	23	0x80
+UUG	220	24	0x7C
+UUP	221	25	0x7E
+UUU	222	26	0xA2
+*/
+#define IPMBL_TABLE_SIZE 	27
+
+unsigned char IPMBL_TABLE[IPMBL_TABLE_SIZE] = {
+	0x70, 0x8A, 0x72, 0x8E, 0x92, 0x90, 0x74, 0x8C, 0x76, 0x98, 0x9C,
+	0x9A, 0xA0, 0xA4, 0x88, 0x9E, 0x86, 0x84, 0x78, 0x94, 0x7A, 0x96,
+	0x82, 0x80, 0x7C, 0x7E, 0xA2 };
+
+unsigned char mmc_local_i2c_address = 0;	// powerup value
+
+unsigned char
+module_get_i2c_address( int address_type )
+{
+	unsigned char g0_0, g1_0, g2_0, g0_1, g1_1, g2_1;
+	int index;
+
+	switch( address_type ) {
+		case I2C_ADDRESS_LOCAL:
+			if( mmc_local_i2c_address == 0 ) {
+				iopin_set( P1 );
+				g0_1 = iopin_get( GA0 );
+				g1_1 = iopin_get( GA1 );
+				g2_1 = iopin_get( GA2 );
+
+				iopin_clear( P1 );
+				g0_0 = iopin_get( GA0 );
+				g1_0 = iopin_get( GA1 );
+				g2_0 = iopin_get( GA2 );
+
+				if( g0_0 != g0_1 ) g0_0 = 2;
+				if( g1_0 != g1_1 ) g1_0 = 2;
+				if( g2_0 != g2_1 ) g2_0 = 2;
+
+				index = g2_0 * 9 + g1_0 * 3 + g0_0;
+				if( index >= IPMBL_TABLE_SIZE )
+					return 0;
+
+				mmc_local_i2c_address = IPMBL_TABLE[index];
+			}
+			return( mmc_local_i2c_address );
+			break;
+		case I2C_ADDRESS_REMOTE:
+			return 0x20;
+			break;
+		default:
+			return 0;
+	}
+}
+
+void sdr_init_mcdls(const char* devIdString){
+	unsigned char dev_slave_addr =  module_get_i2c_address( I2C_ADDRESS_LOCAL );;
+
+	g_SDR_MCDLS.record_id[0]=0; //TODO
+	g_SDR_MCDLS.record_id[1]=0; //TODO
+	g_SDR_MCDLS.record_id[2]=0; //TODO
+
+
+	g_SDR_MCDLS.sdr_version=0x51;
+	g_SDR_MCDLS.record_type=0x12;
+
+	g_SDR_MCDLS.dev_slave_addr = dev_slave_addr;
+	g_SDR_MCDLS.ch_num=0;
+	//ACPI
+	g_SDR_MCDLS.acpi_sys_pwr_st_notify_req=0;
+	g_SDR_MCDLS.acpi_dev_pwr_st_notify_req=0;
+	g_SDR_MCDLS.rsv1=0; //backward compat
+	g_SDR_MCDLS.rsv2=0; //reserver
+	g_SDR_MCDLS.ctrl_logs_init_errs=0;
+	g_SDR_MCDLS.log_init_agent_errs=0;
+	g_SDR_MCDLS.ctrl_init=0; //enable event messages from controller
+	//Device capabilites
+	g_SDR_MCDLS.dev_sup_chassis=0;
+	g_SDR_MCDLS.dev_sup_bridge=0;
+	g_SDR_MCDLS.dev_sup_ipmb_evt_gen=1;
+	g_SDR_MCDLS.dev_sup_ipmb_evt_rcv=0;
+	g_SDR_MCDLS.dev_sup_fru_inv=1;
+	g_SDR_MCDLS.dev_sup_sel=0;
+	g_SDR_MCDLS.dev_sup_sdr_rep=1;
+	g_SDR_MCDLS.dev_sup_sensor=1;
+
+	g_SDR_MCDLS.rsv[0]=0x0;
+	g_SDR_MCDLS.rsv[1]=0x0;
+	g_SDR_MCDLS.rsv[2]=0x0;
+
+	g_SDR_MCDLS.entity_id = 0xC1;
+	g_SDR_MCDLS.entity_instance = 0x60 + ((dev_slave_addr-0x70)>>1); //TODO; figure out what this is?
+
+	g_SDR_MCDLS.oem=0;
+	//Lengths
+	g_SDR_MCDLS.record_len=11+strlen(devIdString);
+	g_SDR_MCDLS.dev_id_typ_len= 0xC0 + strlen(devIdString);
+
+	strcpy((char *)g_SDR_MCDLS.dev_id_str,devIdString);
+
+}
+
+/*==============================================================
+ * FRU CONTROL
+ *==============================================================*/
+/*
+The �FRU Control� command provides base level control over the Modules
+to the Carrier IPMC. Through this command, the Modules can be reset,
+rebooted, instructed to quiesce, or have its diagnostics initiated. The
+implementation of these commands will vary, and allcommand variants with
+the exception of the �FRU Control (Cold Reset)� and �FRU Control
+(Quiesce)� are optional. The �FRU Control� command does not directly change the
+operational state of the Module as represented by the Carrier IPMC (which is typically M4 or
+FRU Active).
+
+Table 3-46 provides specifics for the FRU Control command.
+
+Requirements
+REQ 3.194 An MMC shall respond to the �FRU Control Capabilities� command
+defined in Table 3-24 of the PICMG3.0 specification by identifying the
+optional capabilities of the �FRU Control� command that the Module supports.
+
+REQ 3.100 The �FRU Control� command should not directly change Modules�
+FRU states.
+
+REQ 3.101 Receipt of a �FRU Control (Cold Reset)� command shall
+cause a hardware reset to its Payload, similar to a power on reset.
+
+REQ 3.102 Receipt of a �FRU Control (Warm Reset)� command on a Module
+which supports this command shall cause the Module�s Payload to be reset
+to a stable condition, attempting to preserve its operational state. If
+this command variant is unsupported, the MMC shall return the �Invalid
+data field in Request (CCh)� Completion Code.
+
+REQ 3.103 Receipt of a �FRU Control (Graceful Reboot)� command on a Module
+which supports this command shall initiate a graceful shutdown and reboot
+of its Payload operating system. If this command variant is unsupported,
+the MMC shall return the �Invalid data field in Request (CCh)� Completion Code.
+
+REQ 3.104 Receipt of a �FRU Control (Issue Diagnostic Interrupt)� command
+on a Module which supports this command shall trigger a diagnostic interrupt
+to the Module�s Payload. If this command variant is unsupported, the MMC
+shall return the �Invalid data field in Request (CCh)� Completion Code.
+
+REQ 3.105b On receipt of the �FRU Control (Quiesce)� command, the MMC shall
+take appropriate action (implementation specific) to bring the Payload to
+a quiesced state and shall send a Module Hot Swap (Quiesced) event message
+to the Carrier IPMC.
+*/
+/*
+ * The following are called by picmg_fru_control()
+ */
+
+void
+module_cold_reset( unsigned char dev_id )
+{
+	info("MODULE","Cold reset");
+}
+
+void
+module_warm_reset( unsigned char dev_id )
+{
+	info("MODULE","Warm reset");
+}
+
+void
+module_graceful_reboot( unsigned char dev_id )
+{
+	info("MODULE","Graceful reset");
+}
+
+void
+module_issue_diag_int( unsigned char dev_id )
+{
+	info("MODULE","Diag init");
+}
+
+/*
+ * module_quiesce()
+ *
+ * called by picmg_fru_control()
+ * When the Carrier IPMC has transitioned the Module to M6 state, the Carrier
+ * IPMC sends a �FRU Control (Quiesce)� command to the Module and awaits a
+ * Module Hot Swap (Quiesced) event message from the MMC.
+ */
+
+void
+module_quiesce( unsigned char dev_id )
+{
+	info("MODULE","Set payload to queisced");
+	payload_quiesce();
+	//mmc_hot_swap_state_change( MODULE_QUIESCED );
+}
+
+
+/*==============================================================
+ * MODULE RECORDS
+ *==============================================================*/
+/*
+3.7.1 Module Current Requirements record
+Each Module defines its maximum current requirement even if that
+value is required for only a transitional amount of time (for all components
+on the Module). The Module FRU Information structure described below informs
+the Carrier of these requirements. Table 3-10 Module Current Requirements record
+
+The capabilities of an AdvancedMC Module to communicate over point-to-point
+connections are described in the Module�s FRU Information.
+
+*/
+
+void
+module_event_handler( IPMI_PKT *pkt )
+{
+	info("MODULE","Event handler invoked");
+}
+
+void
+module_term_process( unsigned char * ptr )
+{
+}
+
+/*
+According to the possibility of definition of BF_MS_FIRST
+it is not good programming practice to initialize record the bellow way
+because it should be initialized twice, for both cases of BF_MS_FIRST defined and undefined.
+
+So it is replaced by function where initialization is done in BF_MS_FIRST indepenedt way.
+
+Actually in case of BF_MS_FIRST undefined the bellow code is wrong.
+
+COMPACT_SENSOR_RECORD g_SDR_HOTSWAP = {
+	{ 1,0 },		// 1,2 record_id[0-1] of this record
+	0x51,		// 3 sdr_version;
+	0x02,		// 4 record_type = Compact Sensor Record
+	0x25,		// 5 record_len - Number of remaining record bytes following
+
+	// BYTE 6
+	0,		// owner_id - 7-bit I2C Slave, fill during init
+	0,		// id_type - 0b = owner_id is IPMB Slave Address
+
+	// BYTE 7
+	0,		// channel_num
+	0,		// fru_owner_lun
+	0,		// sensor_owner_lun
+
+	0x90,		// 8 sensor number
+	0xC1,		// 9 entity_id
+
+	// BYTE 10
+	0,		// entity_type - 0b = treat entity as a physical entity
+	0x68,		// entity_instance_num - 60h-7Fh device-relative Entity Instance.
+
+	// BYTE 11 - Sensor initialization
+	0,		// [7] - reserved. Write as 0b
+	0,		// [6] init_scanning
+	0,		// [5] init_events
+	0,		// [4] - reserved. Write as 0b
+	0,		// [3] init_hysteresis
+	0,		// [2] init_sensor_type
+	1,		// [1] powerup_evt_generation
+	1,		// [0] powerup_sensor_scanning
+
+	// BYTE 12 - Sensor capabilities
+	0,		// [7] ignore_sensor
+	1,		// [6] sensor_manual_support
+	0,		// [5:4] sensor_hysteresis_support
+	0,		// [3:2] sensor_threshold_access
+	2,		// [1:0] event_msg_control
+
+
+	0xF2,		// 13 sensor_type = F2 - AMC MMC Module Hot Swap sensor
+	0x6F,		// 14 event_type_code
+	0x0700,		// 15,16 assertion event_mask
+
+	0x0000,		// 17,18 deassertion event mask
+	0x0700,		// 19,20 reading_mask
+
+	// BYTE 21
+	3,		// [7:6] reserved
+	0,		// [5:3] rate_unit - 000b = none
+	0,		// [2:1] modifier_unit - 00b = none
+	0,		// [0] percentage - 0b
+
+	0,		// 22 sensor_units2
+	0,		// 23 sensor_units3
+
+	// BYTE 24
+	0,		// [7:6] sensor_direction - 00b = unspecified / not applicable
+	0,		// [5:4] id_str_mod_type - 00b = numeric
+	1,		// [3:0] share_count
+
+	// BYTE 25
+	0,		// [7] entity_inst_same - 0b = Entity Instance same for all shared records
+	0,		// [6:0] id_str_mod_offset - ID String Instance Modifier Offset
+
+	0, 		// 26 positive_hysteresis
+	0,		// 27 negative_hysteresis
+
+	0,		// 28 reserved Write as 00h
+	0,		// 29 reserved. Write as 00h
+	0,		// 30 reserved. Write as 00h
+
+	0,		// 31 oem - Reserved for OEM use
+
+	0xCA,		// 32 id_str_typ_len Sensor ID String Type/Length Code, 10 chars in str
+	{ 'A', 'M', 'C', 'H', 'O', 'T', 'S', 'W', 'A', 'P' }		// sensor_id_str[]
+};
+
+*/
+
+
+
+
+/**
+ * Send IPMI sensor event
+ */
+
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+FULL_SENSOR_RECORD hssr;
+SENSOR_DATA hssd;
+
+void
+sdr_init_hotswap( void )
+{
+	hssr.record_id[0] = 1;
+	hssr.sdr_version = 0x51;
+	hssr.record_type = 1;	/* Record Type Number = 01h, Full Sensor Record */
+	hssr.record_len = sizeof( FULL_SENSOR_RECORD ) - 5;	/* Number of remaining record bytes following. */
+	hssr.owner_id = 0;	/* 7-bit system software ID */
+	hssr.id_type = 0;	/* System software type */
+	hssr.channel_num = 0;
+	hssr.sensor_owner_lun = 0;
+	hssr.sensor_number = 0;	/* this will get replaced by the actual sensor number when we register the SDR */
+	hssr.entity_id = 0xC1; /* physical entity the sensor is monitoring */
+
+	hssr.entity_type = 0;	/* treat entity as a physical entity */
+	hssr.entity_instance_num = 0;
+	hssr.init_scanning = 0;	/* the sensor accepts the �enable/disable scanning� bit in the
+				   Set Sensor Event Enable command). */
+	hssr.init_events = 0;
+	hssr.init_thresholds = 0;
+	hssr.init_hysteresis = 0;
+	hssr.init_sensor_type = 0;
+
+	/* Sensor Default (power up) State */
+	hssr.powerup_evt_generation = 1;	/* event generation enabled */
+	hssr.powerup_sensor_scanning = 1;	/* sensor scanning enabled */
+	hssr.ignore_sensor = 0;			/* Ignore sensor if entity is not present or disabled. */
+
+	/* Sensor Auto Re-arm Support */
+	hssr.sensor_manual_support = 1;		/* automatically rearms itself when the event clears */
+
+	/* Sensor Hysteresis Support */
+	hssr.sensor_hysteresis_support = 0; 	/* No hysteresis */
+
+	/* Sensor Threshold Access Support */
+	hssr.sensor_threshold_access = 0;	/* no thresholds */
+
+	/* Sensor Event Message Control Support */
+	hssr.event_msg_control = 2;			/* entire sensor only (implies that global
+						   disable is also supported) */
+
+	hssr.sensor_type = ST_MODULE_HOT_SWAP;		/* From Table 42-3, Sensor Type Codes */
+	hssr.event_type_code = 0x6F;		/* unspecified */
+	hssr.event_mask = 0x1F00;
+	hssr.deassertion_event_mask = 0;
+	hssr.reading_mask = 0x1F00;
+	hssr.analog_data_format = 0;		/* unsigned */
+	hssr.rate_unit = 0;			/* none */
+	hssr.modifier_unit = 0;			/* 00b = none */
+	hssr.percentage = 0;			/* not a percentage value */
+	hssr.sensor_units2 = SENSOR_UNIT_UNSPECIFIED;	/*  Base Unit */
+	hssr.sensor_units3 = 0;		/* no modifier unit */
+	hssr.linearization = 0;		/* Linear */
+	hssr.M = 0;
+	hssr.M_tolerance = 0;
+	hssr.B = 0;
+	hssr.B_accuracy = 0;
+	hssr.accuracy = 0;
+	hssr.R_B_exp = 0;
+	hssr.analog_characteristic_flags = 0;
+	hssr.nominal_reading = 0;
+	hssr.normal_maximum = 0;
+	hssr.normal_minimum = 0;
+	hssr.sensor_maximum_reading = 0xff;
+	hssr.sensor_minimum_reading = 0;
+	hssr.upper_non_recoverable_threshold = 0;
+	hssr.upper_critical_threshold = 0;
+	hssr.upper_non_critical_threshold = 0;
+	hssr.lower_non_recoverable_threshold = 0;
+	hssr.lower_critical_threshold = 0;
+	hssr.lower_non_critical_threshold = 0;
+	hssr.positive_going_threshold_hysteresis_value = 0;
+	hssr.negative_going_threshold_hysteresis_value = 0;
+	hssr.reserved2 = 0;
+	hssr.reserved3 = 0;
+	hssr.oem = 0;
+	hssr.id_string_type = 3;	/* 11 = 8-bit ASCII + Latin 1. */
+	hssr.id_string_length = 8; /* length of following data, in characters */
+	memcpy( hssr.id_string_bytes, "Hot Swap", 8); /* Sensor ID String bytes. */
+}
+
+void sensor_read_hotswap(void * sd){
+	((SENSOR_DATA *)sd)->last_sensor_reading=hot_swap_handle_last_state;
+	/*
+	 * From Denx manual, page 70, byte 15 of HotSwap Sensor Record,
+	 * 					 chapter 5.2.2 Hot Swap Sensor
+	 *
+	 * 16 bit4 = backend power shut down,
+		8 bit3 = backend power failure,
+		4 bit2 = quiesced,
+		2 bit1 = module handle opened,
+		1 bit0 = module handle closed
+	 */
+	((SENSOR_DATA *)sd)->discrete = 0;
+	if (hot_swap_handle_last_state == HANDLE_SWITCH_OPEN) {
+		((SENSOR_DATA *)sd)->discrete += 2;
+	} else {
+		((SENSOR_DATA *)sd)->discrete += 1;
+	}
+	switch (g_module_state.payload_state) {
+	case PAYLOAD_WAIT_SHUTDOWN:
+		((SENSOR_DATA *)sd)->discrete += 4+16;
+		break;
+	case PAYLOAD_ERR:
+		((SENSOR_DATA *)sd)->discrete += 8;
+		break;
+	default:
+		break;
+	}
+
+}
+
+void
+module_sensor_init( void )
+{
+
+	unsigned char dev_slave_addr =  module_get_i2c_address( I2C_ADDRESS_LOCAL );
+
+	//Init Management Controller Device Locator Sensor
+	sdr_init_mcdls("CSL-MMC-WR");
+
+	sdr_add(&g_SDR_MCDLS,sizeof(g_SDR_MCDLS));
+
+
+	sdr_init_hotswap();
+
+	hssr.owner_id=dev_slave_addr>>1;
+	hssr.entity_instance_num=0x60+((dev_slave_addr-0x70)/2);
+	hssr.entity_id=0xc1;
+	hssd.scan_function = sensor_read_hotswap;
+	hssd.sensor_scanning_enabled=1;
+
+	sensor_add(&hssr,&hssd);
+}
+
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+

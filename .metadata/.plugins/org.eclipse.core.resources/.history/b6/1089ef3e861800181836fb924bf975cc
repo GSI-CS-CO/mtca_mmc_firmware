@@ -1,0 +1,274 @@
+/*
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *   @license GPL-3.0+ <http://spdx.org/licenses/GPL-3.0+>
+ */
+
+#include <stdio.h>
+
+#include "util/report.h"
+
+/* Drivers and periph support code */
+#include "drivers/lpc21nn.h"
+#include "drivers/iopin.h"
+#include "drivers/uart.h"
+#include "drivers/auxI2C.h"
+#include "drivers/m24eeprom.h"
+#include "drivers/lm73.h"
+#include "drivers/mmcio.h"
+
+/* FreeRTOS includes */
+#include "FreeRTOS.h"
+#include "task.h"
+#include "semphr.h"
+#include "queue.h"
+#include "timers.h"
+
+/* CoreIPM Includes */
+#include "coreIPM/timer.h"
+#include "coreIPM/ws.h"
+#include "coreIPM/i2c.h"
+#include "coreIPM/picmg.h"
+#include "coreIPM/module.h"
+
+/* from src */
+#include "payload.h"
+#include "mmc_config.h"
+#include "build_id.h"
+
+
+SemaphoreHandle_t slowTask_sem;
+struct m24eeprom_ws g_M24EEPROM = { .address = 0b1010100};
+
+/**
+ * This task simulates coreIPM Timer interrupt, the only thing it does
+ * is it increments internal tick counter that is used by timer
+ * callbacks...
+ */
+static void tskCoreIPM_hardclock(){
+	extern unsigned long lbolt;
+	while(1){
+		lbolt++;
+		vTaskDelay(100);
+	}
+}
+
+
+// Notify user that MMC is aware of the host type
+// and indicate to FPGA that we are in Libera
+static void tskHostType(){
+	unsigned int on_delay, off_delay;
+	char c;
+
+	// default state
+	g_module_state.host_type = AMC_FTRN_UNKNOWN_HOST;
+	debug(3,"HOST_TYPE","Init: host_type=%X", g_module_state.host_type);
+	g_module_state.ipmi_amc_host = 0;
+	on_delay  = 1000;
+	off_delay = 0;
+	iopin_clear(PAYLOAD_PIN_IN_LIBERA);
+
+	// wait until in active state
+	//while(g_module_state.payload_state != PAYLOAD_ACTIVE);
+
+	while(1){
+		// Check host type when payload in active state
+		if (g_module_state.payload_state == PAYLOAD_ACTIVE            ||
+			g_module_state.payload_state == PAYLOAD_ACTIVE_PCIE_RESET ||
+			g_module_state.payload_state == PAYLOAD_ACTIVE_PCIE_RESET_DEASSERT ||
+			g_module_state.payload_state == PAYLOAD_ACTIVE_BLINK_GREEN ) {
+
+			// determine host type, check if amc is in the crate and which one
+
+			if (iopin_get(STANDALONE)) { // outside on AUX power
+				if(g_module_state.host_type != AMC_FTRN_OUTSIDE){
+					debug(3,"HOST_TYPE","Change: %X >> %X", g_module_state.host_type,AMC_FTRN_OUTSIDE);
+					info("HOST_TYPE","FTRN OUTSIDE");
+					g_module_state.host_type = AMC_FTRN_OUTSIDE;
+					on_delay  = 0;
+					off_delay = 1000;
+					// allow enabling of Libera triggers by SW when outside the crate
+					iopin_clear(PAYLOAD_PIN_IN_LIBERA);
+				}
+			// currently MTCA.4 triggers are enabled by SW via FPGA
+			// MMC/MCH are not involved, MMC can only observe when SW enabled MTCA.4 triggers
+			}else if(iopin_get(PAYLOAD_PIN_MTCA4_EN)){
+				g_module_state.host_type = AMC_FTRN_IN_MICROTCA_4;
+				on_delay  = 1000;
+				off_delay = 1000;
+				iopin_clear(PAYLOAD_PIN_IN_LIBERA);
+
+			}else if(g_module_state.ipmi_amc_host){ // got host type message via IPMI (in Libera)
+				if(g_module_state.host_type != g_module_state.ipmi_amc_host){
+					debug(3,"HOST_TYPE","Ipmi Msg: %X >> %X", g_module_state.host_type,g_module_state.ipmi_amc_host);
+					g_module_state.host_type = g_module_state.ipmi_amc_host;
+
+					// indicate with LED_WHITE to the user what host type was detected
+					// blink time regarding host type
+					switch (g_module_state.host_type){
+					case AMC_FTRN_IN_LIBERA_SLOT_7:
+						info("HOST_TYPE","In Libera Slot7");
+						on_delay  =  200;
+						off_delay = 1800;
+
+						iopin_set(PAYLOAD_PIN_IN_LIBERA);
+						// turn off BLUE led in Libera because BCM does not send BLUE led control messages
+						iopin_led(BLUE_LED,1,0);
+						break;
+
+					case AMC_FTRN_IN_LIBERA_SLOT_8:
+						info("HOST_TYPE","In Libera Slot8");
+						on_delay  = 1800;
+						off_delay =  200;
+						iopin_set(PAYLOAD_PIN_IN_LIBERA);
+
+						// turn off BLUE led in Libera because BCM does not send BLUE led control messages
+						iopin_led(BLUE_LED,1,0);
+						break;
+					// assume MTCA (should not get here)
+					default: // AMC_FTRN_IN_MICROTCA:
+						info("HOST_TYPE","In MTCA");
+						on_delay  = 1000;
+						off_delay = 0;
+						iopin_clear(PAYLOAD_PIN_IN_LIBERA);
+						break;
+					}
+				}
+			}else{
+				// default state
+				if(g_module_state.host_type != AMC_FTRN_IN_MICROTCA){
+					debug(3,"HOST_TYPE","Change: %X >> %X", g_module_state.host_type,AMC_FTRN_IN_MICROTCA);
+					info("HOST_TYPE","In MTCA");
+					g_module_state.host_type = AMC_FTRN_IN_MICROTCA;
+					on_delay  = 1000;
+					off_delay = 0;
+					iopin_clear(PAYLOAD_PIN_IN_LIBERA);
+				}
+			}
+
+			// blink WHITE LED to indicate that FTRN is aware of the host type
+			if(on_delay){
+				iopin_led(LED_WHITE,0,1); //turn on LED
+			}
+			vTaskDelay(on_delay);
+
+			iopin_led(LED_WHITE,0,0);
+			vTaskDelay(off_delay);
+
+		}else{
+			g_module_state.host_type = AMC_FTRN_UNKNOWN_HOST;
+			iopin_clear(PAYLOAD_PIN_IN_LIBERA);
+			iopin_led(LED_WHITE,0,0);
+			vTaskDelay(1000);
+		}
+
+		// check if user wanted to change debug level prints
+		c= U0RBR;
+		if((c >= 0x30) && (c<= 0x39)){ // check if ACII character 0-9
+			c-=0x30;
+			report_init(c); // change report level
+			info("DEBUG","Report level set to %d",c);
+		}// payload active state
+	}//while(1)
+}
+
+
+
+static void init_task(void* pvt){
+	info("INIT","Cosylab MMC startup!");
+	info("INIT","CoreIPM init!");
+
+	report_init(0); // no debug prints
+	//CoreIPM init
+	ws_init();
+	i2c_initialize();
+	timer_initialize();
+	ipmi_initialize();
+	picmg_init();
+	module_init();
+
+	info("INIT","Payload init!");
+	payload_init();
+	mmc_config_init();
+
+	//Start tasks
+	xTaskCreate(tskCoreIPM_hardclock, "IPMCLK",configMINIMAL_STACK_SIZE,0,4,0);
+
+	// Host type detect - when powered up, detect in which type host is FTRN
+	xTaskCreate(tskHostType, "HOST_TYPE",4*configMINIMAL_STACK_SIZE,0,tskIDLE_PRIORITY,0);
+
+	info("INIT","Starting coreIPM");
+	while(1){
+		ws_process_work_list();
+		timer_process_callout_queue();
+
+		vTaskDelay(1);
+	}
+}
+
+
+int main() {
+	iopin_initialize();
+	uart_init();
+	auxI2C_init();
+
+	xTaskCreate(init_task,"INIT",configMINIMAL_STACK_SIZE*10,0,tskIDLE_PRIORITY+1,0);
+
+	slowTask_sem = xSemaphoreCreateBinary();
+
+	info("BOOT","Starting kernel");
+	portENABLE_INTERRUPTS();
+	info("BOOT","Starting scheduler");
+	vTaskStartScheduler();
+	error("BOOT","Scheduler stopped!\n");
+
+	return 0;
+}
+
+
+/*
+static void taskHello(void *pvParameters) {
+	for (;;) {
+		printf("Hello from task %d\n", ((int) pvParameters));
+
+		vTaskDelay(1000);
+	}
+
+}
+
+
+static void slowTask(void *pvt) {
+	int delay = (int) pvt;
+	while (1) {
+		printf("[SLOW %d]: Begin processing\n", delay);
+		int i = 0;
+		for (i = 0; i < delay; i++) {
+//			uncomment this if using cooperative scheduling
+//			if(!(i%1000)) taskYIELD();
+		}
+
+		printf("[SLOW %d]: End processing\n", delay);
+		xSemaphoreGive(slowTask_sem);
+	}
+}
+
+static void waitTask(void* pvt){
+	while(1){
+		if(xSemaphoreTake(slowTask_sem,1000)){
+			printf("Wait task woken up!\n");
+		}
+	}
+}
+
+*/

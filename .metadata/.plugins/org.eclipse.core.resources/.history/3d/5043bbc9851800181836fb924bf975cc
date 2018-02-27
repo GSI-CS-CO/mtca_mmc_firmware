@@ -1,0 +1,17 @@
+
+
+const char MMC_BUILD_ID[] ="\
+-- FTRN MMC build info ------\n\
+Build date : Fri Feb 23 11:32:19 CET 2018\n\
+User       : Dusan Slavinec\n\
+Email      : dusan.slavinec@cosylab.com\n\
+Branch     : dsl_fix_leds\n\
+Git info   : dsl_fix_leds-16\n\
+Os         : Description:	Linux Mint 18.1 Serena\n\
+\n
+208802b cleaned out DENX related code, added option to set debug report level, cleanup\n\
+4d72cc6 check host type only in payload active state\n\
+3bb967b ready for release: cleanup, fixed host detect FSM, modified debug prints\n\
+3b01f2a fixing port activation, led blinking, added JTAGsw sensor, changed host type logic, modified payload fsm, modified blink task\n\
+bf45cde before changing control of the leds via functions in gpio.c\n\
+\n\n";

@@ -119,4 +119,26 @@ To load new firmware to MMC run:
     Nt: Loaded 0x1846C bytes in 50943ms (about 1kB/s)
     ...
 
-NOTE: You might get an error after this part of flash-utility output, but at this does not seem to have any influence on the actuall flashing procedure.
+NOTE: You might get an error after this part of flash-utility output, but this does not seem to have any influence on the actuall flashing procedure.
+
+
+# MMC console
+
+To observe MMC activity there is console available. Connect to FTRN via USB cable to the MMC USB connector (the one on the opposite side of the SFP and HotSwap handle). 
+Device is visible on the USB bus as
+
+    Bus xxx Device yyy: ID 0403:6015 Future Technology Devices International, Ltd Bridge(I2C/SPI/UART/FIFO)
+
+and in /dev as ttyUSBx
+
+Open device in terminal, example with minicom:
+
+    minicom -b 115200 -D ttyUSB0
+
+
+Console outputs various information about MMC state and actions and currently supports this inputs:
+
+- typing numbers 0-9 enables/disables debug prints, 0-debug prints disabled, 1-9 - debug print level enabled
+- i or I - print out firmware build info (similar as eb-info)
+
+

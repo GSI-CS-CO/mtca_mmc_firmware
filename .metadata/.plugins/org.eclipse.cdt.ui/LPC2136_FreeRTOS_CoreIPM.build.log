@@ -1,0 +1,397 @@
+18:32:17 **** Build of configuration Release for project LPC2136_FreeRTOS_CoreIPM ****
+make -r pre-build main-build 
+../src/build_id.sh
+Gathering info to generate build info header...
+Dusan Slavinec
+dusan.slavinec@cosylab.com
+dsl_fix_leds
+25
+ 
+Building file: ../src/util/callbackqueue.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/util/callbackqueue.d" -MT"src/util/callbackqueue.o" -MT"src/util/callbackqueue.d" -o "src/util/callbackqueue.o" "../src/util/callbackqueue.c"
+../src/util/callbackqueue.c: In function 'cb_process':
+../src/util/callbackqueue.c:64:9: warning: unused variable 'write_idx' [-Wunused-variable]
+     int write_idx = cb->write_idx;
+         ^
+Finished building: ../src/util/callbackqueue.c
+ 
+Building file: ../src/util/report.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/util/report.d" -MT"src/util/report.o" -MT"src/util/report.d" -o "src/util/report.o" "../src/util/report.c"
+Finished building: ../src/util/report.c
+ 
+Building file: ../src/drivers/auxI2C.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/drivers/auxI2C.d" -MT"src/drivers/auxI2C.o" -MT"src/drivers/auxI2C.d" -o "src/drivers/auxI2C.o" "../src/drivers/auxI2C.c"
+Finished building: ../src/drivers/auxI2C.c
+ 
+Building file: ../src/drivers/iopin.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/drivers/iopin.d" -MT"src/drivers/iopin.o" -MT"src/drivers/iopin.d" -o "src/drivers/iopin.o" "../src/drivers/iopin.c"
+Finished building: ../src/drivers/iopin.c
+ 
+Building file: ../src/drivers/lm73.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/drivers/lm73.d" -MT"src/drivers/lm73.o" -MT"src/drivers/lm73.d" -o "src/drivers/lm73.o" "../src/drivers/lm73.c"
+Finished building: ../src/drivers/lm73.c
+ 
+Building file: ../src/drivers/m24eeprom.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/drivers/m24eeprom.d" -MT"src/drivers/m24eeprom.o" -MT"src/drivers/m24eeprom.d" -o "src/drivers/m24eeprom.o" "../src/drivers/m24eeprom.c"
+Finished building: ../src/drivers/m24eeprom.c
+ 
+Building file: ../src/drivers/mmcio.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/drivers/mmcio.d" -MT"src/drivers/mmcio.o" -MT"src/drivers/mmcio.d" -o "src/drivers/mmcio.o" "../src/drivers/mmcio.c"
+Finished building: ../src/drivers/mmcio.c
+ 
+Building file: ../src/drivers/retarget.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/drivers/retarget.d" -MT"src/drivers/retarget.o" -MT"src/drivers/retarget.d" -o "src/drivers/retarget.o" "../src/drivers/retarget.c"
+Finished building: ../src/drivers/retarget.c
+ 
+Building file: ../src/drivers/uart.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/drivers/uart.d" -MT"src/drivers/uart.o" -MT"src/drivers/uart.d" -o "src/drivers/uart.o" "../src/drivers/uart.c"
+../src/drivers/uart.c: In function 'UART0_ISR':
+../src/drivers/uart.c:217:16: warning: variable 'temp' set but not used [-Wunused-but-set-variable]
+  case UARTINT_RX_DATA_AVAIL: // Rx char available
+                ^
+../src/drivers/uart.c: In function 'uart0_emptyrx':
+../src/drivers/uart.c:314:7: warning: variable 'tmp' set but not used [-Wunused-but-set-variable]
+  ch - Character to be written. The character is passed as its int promotion.
+       ^
+Finished building: ../src/drivers/uart.c
+ 
+Building file: ../src/coreIPM/crp.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/coreIPM/crp.d" -MT"src/coreIPM/crp.o" -MT"src/coreIPM/crp.d" -o "src/coreIPM/crp.o" "../src/coreIPM/crp.c"
+Finished building: ../src/coreIPM/crp.c
+ 
+Building file: ../src/coreIPM/debug.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/coreIPM/debug.d" -MT"src/coreIPM/debug.o" -MT"src/coreIPM/debug.d" -o "src/coreIPM/debug.o" "../src/coreIPM/debug.c"
+Finished building: ../src/coreIPM/debug.c
+ 
+Building file: ../src/coreIPM/event.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/coreIPM/event.d" -MT"src/coreIPM/event.o" -MT"src/coreIPM/event.d" -o "src/coreIPM/event.o" "../src/coreIPM/event.c"
+../src/coreIPM/event.c: In function 'pef_postpone_timer_expired':
+../src/coreIPM/event.c:353:21: warning: variable 'evt_msg' set but not used [-Wunused-but-set-variable]
+  GENERIC_EVENT_MSG *evt_msg;
+                     ^
+Finished building: ../src/coreIPM/event.c
+ 
+Building file: ../src/coreIPM/gpio.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/coreIPM/gpio.d" -MT"src/coreIPM/gpio.o" -MT"src/coreIPM/gpio.d" -o "src/coreIPM/gpio.o" "../src/coreIPM/gpio.c"
+../src/coreIPM/gpio.c: In function 'gpio_led_on':
+../src/coreIPM/gpio.c:90:12: warning: unused variable 'iopin' [-Wunused-variable]
+  long long iopin = 0;
+            ^
+../src/coreIPM/gpio.c: In function 'gpio_led_on_noreset':
+../src/coreIPM/gpio.c:115:12: warning: unused variable 'iopin' [-Wunused-variable]
+  long long iopin = 0;
+            ^
+../src/coreIPM/gpio.c: In function 'gpio_led_off':
+../src/coreIPM/gpio.c:135:12: warning: unused variable 'iopin' [-Wunused-variable]
+  long long iopin = 0;
+            ^
+../src/coreIPM/gpio.c: In function 'gpio_led_off_noreset':
+../src/coreIPM/gpio.c:159:12: warning: unused variable 'iopin' [-Wunused-variable]
+  long long iopin = 0;
+            ^
+Finished building: ../src/coreIPM/gpio.c
+ 
+Building file: ../src/coreIPM/i2c.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/coreIPM/i2c.d" -MT"src/coreIPM/i2c.o" -MT"src/coreIPM/i2c.d" -o "src/coreIPM/i2c.o" "../src/coreIPM/i2c.c"
+Finished building: ../src/coreIPM/i2c.c
+ 
+Building file: ../src/coreIPM/ipmi.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/coreIPM/ipmi.d" -MT"src/coreIPM/ipmi.o" -MT"src/coreIPM/ipmi.d" -o "src/coreIPM/ipmi.o" "../src/coreIPM/ipmi.c"
+../src/coreIPM/ipmi.c: In function 'ipmi_process_pkt':
+../src/coreIPM/ipmi.c:256:5: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+     cksum = ipmi_calculate_checksum( &(((IPMI_IPMB_REQUEST *)(ws->pkt_in))->requester_slave_addr), 
+     ^
+../src/coreIPM/ipmi.c:310:4: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+    pkt->req = ( IPMI_CMD_REQ * )&( ( ( IPMI_TERMINAL_MODE_REQUEST * )( ws->pkt_in ) )->command );
+    ^
+../src/coreIPM/ipmi.c:311:4: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+    pkt->resp = ( IPMI_CMD_RESP * )&( ( ( IPMI_TERMINAL_MODE_RESPONSE * )( ws->pkt_out ) )->completion_code );
+    ^
+../src/coreIPM/ipmi.c:312:4: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+    pkt->hdr.netfn = ( ( IPMI_TERMINAL_MODE_REQUEST * )( ws->pkt_in ) )->netfn;
+    ^
+../src/coreIPM/ipmi.c:313:4: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+    pkt->hdr.responder_lun = ( ( IPMI_TERMINAL_MODE_REQUEST * )( ws->pkt_in ) )->responder_lun;
+    ^
+../src/coreIPM/ipmi.c: In function 'ipmi_process_response':
+../src/coreIPM/ipmi.c:460:3: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+   seq = ((IPMI_IPMB_REQUEST *)(resp_ws->pkt_in))->req_seq;
+   ^
+../src/coreIPM/ipmi.c: In function 'ipmi_send_message_cmd':
+../src/coreIPM/ipmi.c:1530:4: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+    ( ( IPMI_IPMB_REQUEST * )( target_ws->pkt_out ) )->req_seq = seq;
+    ^
+Finished building: ../src/coreIPM/ipmi.c
+ 
+Building file: ../src/coreIPM/mmc.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/coreIPM/mmc.d" -MT"src/coreIPM/mmc.o" -MT"src/coreIPM/mmc.d" -o "src/coreIPM/mmc.o" "../src/coreIPM/mmc.c"
+Finished building: ../src/coreIPM/mmc.c
+ 
+Building file: ../src/coreIPM/module.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/coreIPM/module.d" -MT"src/coreIPM/module.o" -MT"src/coreIPM/module.d" -o "src/coreIPM/module.o" "../src/coreIPM/module.c"
+Finished building: ../src/coreIPM/module.c
+ 
+Building file: ../src/coreIPM/picmg.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/coreIPM/picmg.d" -MT"src/coreIPM/picmg.o" -MT"src/coreIPM/picmg.d" -o "src/coreIPM/picmg.o" "../src/coreIPM/picmg.c"
+../src/coreIPM/picmg.c: In function 'picmg_get_address_info':
+../src/coreIPM/picmg.c:308:33: warning: unused variable 'fru' [-Wunused-variable]
+  unsigned char  cc = CC_NORMAL, fru, i, found = 0;
+                                 ^
+../src/coreIPM/picmg.c:308:17: warning: unused variable 'cc' [-Wunused-variable]
+  unsigned char  cc = CC_NORMAL, fru, i, found = 0;
+                 ^
+../src/coreIPM/picmg.c: In function 'picmg_set_power_level':
+../src/coreIPM/picmg.c:843:12: warning: unused variable 'power_level' [-Wunused-variable]
+  unsigned  power_level;
+            ^
+../src/coreIPM/picmg.c: In function 'picmg_set_port_state':
+../src/coreIPM/picmg.c:1371:18: warning: array subscript is above array bounds [-Warray-bounds]
+   link_info_table[i].link_info.link_grouping_id = req->link_info.link_grouping_id;
+                  ^
+../src/coreIPM/picmg.c:1372:18: warning: array subscript is above array bounds [-Warray-bounds]
+   link_info_table[i].link_info.link_type_extension = req->link_info.link_type_extension;
+                  ^
+../src/coreIPM/picmg.c:1373:18: warning: array subscript is above array bounds [-Warray-bounds]
+   link_info_table[i].link_info.link_type = req->link_info.link_type;
+                  ^
+../src/coreIPM/picmg.c:1374:18: warning: array subscript is above array bounds [-Warray-bounds]
+   link_info_table[i].link_info.port3_bit_flag = req->link_info.port3_bit_flag;
+                  ^
+../src/coreIPM/picmg.c:1375:18: warning: array subscript is above array bounds [-Warray-bounds]
+   link_info_table[i].link_info.port2_bit_flag = req->link_info.port2_bit_flag;
+                  ^
+../src/coreIPM/picmg.c:1376:18: warning: array subscript is above array bounds [-Warray-bounds]
+   link_info_table[i].link_info.port1_bit_flag = req->link_info.port1_bit_flag;
+                  ^
+../src/coreIPM/picmg.c:1377:18: warning: array subscript is above array bounds [-Warray-bounds]
+   link_info_table[i].link_info.port0_bit_flag = req->link_info.port0_bit_flag;
+                  ^
+../src/coreIPM/picmg.c:1378:18: warning: array subscript is above array bounds [-Warray-bounds]
+   link_info_table[i].state = req->state;
+                  ^
+../src/coreIPM/picmg.c: In function 'picmg_get_port_state':
+../src/coreIPM/picmg.c:1409:37: warning: array subscript is above array bounds [-Warray-bounds]
+   resp->link_info1 = link_info_table[i].link_info;
+                                     ^
+../src/coreIPM/picmg.c:1410:33: warning: array subscript is above array bounds [-Warray-bounds]
+   resp->state1 = link_info_table[i].state;
+                                 ^
+Finished building: ../src/coreIPM/picmg.c
+ 
+Building file: ../src/coreIPM/sensor.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/coreIPM/sensor.d" -MT"src/coreIPM/sensor.o" -MT"src/coreIPM/sensor.d" -o "src/coreIPM/sensor.o" "../src/coreIPM/sensor.c"
+../src/coreIPM/sensor.c: In function 'get_sdr':
+../src/coreIPM/sensor.c:811:20: warning: unused variable 'resp' [-Wunused-variable]
+  GET_SDR_CMD_RESP *resp = ( GET_SDR_CMD_RESP * )(pkt->resp);
+                    ^
+../src/coreIPM/sensor.c:810:19: warning: unused variable 'req' [-Wunused-variable]
+  GET_SDR_CMD_REQ *req = ( GET_SDR_CMD_REQ * )(pkt->req);
+                   ^
+Finished building: ../src/coreIPM/sensor.c
+ 
+Building file: ../src/coreIPM/strings.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/coreIPM/strings.d" -MT"src/coreIPM/strings.o" -MT"src/coreIPM/strings.d" -o "src/coreIPM/strings.o" "../src/coreIPM/strings.c"
+Finished building: ../src/coreIPM/strings.c
+ 
+Building file: ../src/coreIPM/timer.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/coreIPM/timer.d" -MT"src/coreIPM/timer.o" -MT"src/coreIPM/timer.d" -o "src/coreIPM/timer.o" "../src/coreIPM/timer.c"
+../src/coreIPM/timer.c: In function 'timer_remove_callout_queue':
+../src/coreIPM/timer.c:129:15: warning: unused variable 'interrupt_mask' [-Wunused-variable]
+  unsigned int interrupt_mask = CURRENT_INTERRUPT_MASK; 
+               ^
+../src/coreIPM/timer.c: In function 'timer_reset_callout_queue':
+../src/coreIPM/timer.c:155:15: warning: unused variable 'interrupt_mask' [-Wunused-variable]
+  unsigned int interrupt_mask = CURRENT_INTERRUPT_MASK; 
+               ^
+../src/coreIPM/timer.c: In function 'timer_get_expiration_time':
+../src/coreIPM/timer.c:181:16: warning: unused variable 'ticks' [-Wunused-variable]
+  unsigned long ticks = 0;
+                ^
+../src/coreIPM/timer.c: In function 'cq_alloc':
+../src/coreIPM/timer.c:243:15: warning: unused variable 'interrupt_mask' [-Wunused-variable]
+  unsigned int interrupt_mask = CURRENT_INTERRUPT_MASK; 
+               ^
+../src/coreIPM/timer.c: In function 'cq_get_expired_elem':
+../src/coreIPM/timer.c:279:15: warning: unused variable 'interrupt_mask' [-Wunused-variable]
+  unsigned int interrupt_mask = CURRENT_INTERRUPT_MASK; 
+               ^
+Finished building: ../src/coreIPM/timer.c
+ 
+Building file: ../src/coreIPM/wd.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/coreIPM/wd.d" -MT"src/coreIPM/wd.o" -MT"src/coreIPM/wd.d" -o "src/coreIPM/wd.o" "../src/coreIPM/wd.c"
+Finished building: ../src/coreIPM/wd.c
+ 
+Building file: ../src/coreIPM/ws.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/coreIPM/ws.d" -MT"src/coreIPM/ws.o" -MT"src/coreIPM/ws.d" -o "src/coreIPM/ws.o" "../src/coreIPM/ws.c"
+Finished building: ../src/coreIPM/ws.c
+ 
+Building file: ../src/cr_startup_lpc21.s
+Invoking: MCU Assembler
+arm-none-eabi-gcc -c -x assembler-with-cpp -D__REDLIB__ -DNDEBUG -D__CODE_RED -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -o "src/cr_startup_lpc21.o" "../src/cr_startup_lpc21.s"
+Finished building: ../src/cr_startup_lpc21.s
+ 
+Building file: ../src/main.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/main.d" -MT"src/main.o" -MT"src/main.d" -o "src/main.o" "../src/main.c"
+Finished building: ../src/main.c
+ 
+Building file: ../src/mmc_config.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/mmc_config.d" -MT"src/mmc_config.o" -MT"src/mmc_config.d" -o "src/mmc_config.o" "../src/mmc_config.c"
+Finished building: ../src/mmc_config.c
+ 
+Building file: ../src/payload.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DNDEBUG -D__CODE_RED -I"../../FreeRTOS_LPC2136/include" -I"../../FreeRTOS_LPC2136/portable" -Os -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/payload.d" -MT"src/payload.o" -MT"src/payload.d" -o "src/payload.o" "../src/payload.c"
+Finished building: ../src/payload.c
+ 
+Building target: LPC2136_FreeRTOS_CoreIPM.axf
+Invoking: MCU Linker
+arm-none-eabi-gcc -nostdlib -L"../../FreeRTOS_LPC2136/Release" -Xlinker -Map="LPC2136_FreeRTOS_CoreIPM.map" -Xlinker --gc-sections -mcpu=arm7tdmi -T "LPC2136_FreeRTOS_CoreIPM_Release.ld" -o "LPC2136_FreeRTOS_CoreIPM.axf"  ./src/util/callbackqueue.o ./src/util/report.o  ./src/drivers/auxI2C.o ./src/drivers/iopin.o ./src/drivers/lm73.o ./src/drivers/m24eeprom.o ./src/drivers/mmcio.o ./src/drivers/retarget.o ./src/drivers/uart.o  ./src/coreIPM/crp.o ./src/coreIPM/debug.o ./src/coreIPM/event.o ./src/coreIPM/gpio.o ./src/coreIPM/i2c.o ./src/coreIPM/ipmi.o ./src/coreIPM/mmc.o ./src/coreIPM/module.o ./src/coreIPM/picmg.o ./src/coreIPM/sensor.o ./src/coreIPM/strings.o ./src/coreIPM/timer.o ./src/coreIPM/wd.o ./src/coreIPM/ws.o  ./src/cr_startup_lpc21.o ./src/main.o ./src/mmc_config.o ./src/payload.o   -lFreeRTOS_LPC2136
+Finished building target: LPC2136_FreeRTOS_CoreIPM.axf
+ 
+make --no-print-directory post-build
+Performing post-build steps
+arm-none-eabi-size "LPC2136_FreeRTOS_CoreIPM.axf" ; arm-none-eabi-objcopy -v -O binary "LPC2136_FreeRTOS_CoreIPM.axf" "LPC2136_FreeRTOS_CoreIPM.bin" checksum -p LPC2138 -d "LPC2136_FreeRTOS_CoreIPM.bin" ; arm-none-eabi-objcopy -v -O ihex "LPC2136_FreeRTOS_CoreIPM.axf" "LPC2136_FreeRTOS_CoreIPM.hex"
+   text	   data	    bss	    dec	    hex	filename
+  59736	    116	  31228	  91080	  163c8	LPC2136_FreeRTOS_CoreIPM.axf
+Usage: arm-none-eabi-objcopy [option(s)] in-file [out-file]
+ Copies a binary file, possibly transforming it in the process
+ The options are:
+  -I --input-target <bfdname>      Assume input file is in format <bfdname>
+  -O --output-target <bfdname>     Create an output file in format <bfdname>
+  -B --binary-architecture <arch>  Set output arch, when input is arch-less
+  -F --target <bfdname>            Set both input and output format to <bfdname>
+     --debugging                   Convert debugging information, if possible
+  -p --preserve-dates              Copy modified/access timestamps to the output
+  -D --enable-deterministic-archives
+                                   Produce deterministic output when stripping archives
+  -U --disable-deterministic-archives
+                                   Disable -D behavior (default)
+  -j --only-section <name>         Only copy section <name> into the output
+     --add-gnu-debuglink=<file>    Add section .gnu_debuglink linking to <file>
+  -R --remove-section <name>       Remove section <name> from the output
+  -S --strip-all                   Remove all symbol and relocation information
+  -g --strip-debug                 Remove all debugging symbols & sections
+     --strip-dwo                   Remove all DWO sections
+     --strip-unneeded              Remove all symbols not needed by relocations
+  -N --strip-symbol <name>         Do not copy symbol <name>
+     --strip-unneeded-symbol <name>
+                                   Do not copy symbol <name> unless needed by
+copy from `LPC2136_FreeRTOS_CoreIPM.axf' [elf32-littlearm] to `LPC2136_FreeRTOS_CoreIPM.hex' [ihex]
+                                     relocations
+ 
+     --only-keep-debug             Strip everything but the debug information
+     --extract-dwo                 Copy only DWO sections
+     --extract-symbol              Remove section contents but keep symbols
+  -K --keep-symbol <name>          Do not strip symbol <name>
+     --keep-file-symbols           Do not strip file symbol(s)
+     --localize-hidden             Turn all ELF hidden symbols into locals
+  -L --localize-symbol <name>      Force symbol <name> to be marked as a local
+     --globalize-symbol <name>     Force symbol <name> to be marked as a global
+  -G --keep-global-symbol <name>   Localize all symbols except <name>
+  -W --weaken-symbol <name>        Force symbol <name> to be marked as a weak
+     --weaken                      Force all global symbols to be marked as weak
+  -w --wildcard                    Permit wildcard in symbol comparison
+  -x --discard-all                 Remove all non-global symbols
+  -X --discard-locals              Remove any compiler-generated symbols
+  -i --interleave[=<number>]       Only copy N out of every <number> bytes
+     --interleave-width <number>   Set N for --interleave
+  -b --byte <num>                  Select byte <num> in every interleaved block
+     --gap-fill <val>              Fill gaps between sections with <val>
+     --pad-to <addr>               Pad the last section up to address <addr>
+     --set-start <addr>            Set the start address to <addr>
+    {--change-start|--adjust-start} <incr>
+                                   Add <incr> to the start address
+    {--change-addresses|--adjust-vma} <incr>
+                                   Add <incr> to LMA, VMA and start addresses
+    {--change-section-address|--adjust-section-vma} <name>{=|+|-}<val>
+                                   Change LMA and VMA of section <name> by <val>
+     --change-section-lma <name>{=|+|-}<val>
+                                   Change the LMA of section <name> by <val>
+     --change-section-vma <name>{=|+|-}<val>
+                                   Change the VMA of section <name> by <val>
+    {--[no-]change-warnings|--[no-]adjust-warnings}
+                                   Warn if a named section does not exist
+     --set-section-flags <name>=<flags>
+                                   Set section <name>'s properties to <flags>
+     --add-section <name>=<file>   Add section <name> found in <file> to output
+     --update-section <name>=<file>
+                                   Update contents of section <name> with
+                                   contents found in <file>
+     --dump-section <name>=<file>  Dump the contents of section <name> into <file>
+     --rename-section <old>=<new>[,<flags>] Rename section <old> to <new>
+     --long-section-names {enable|disable|keep}
+                                   Handle long section names in Coff objects.
+     --change-leading-char         Force output format's leading character style
+     --remove-leading-char         Remove leading character from global symbols
+     --reverse-bytes=<num>         Reverse <num> bytes at a time, in output sections with content
+     --redefine-sym <old>=<new>    Redefine symbol name <old> to <new>
+     --redefine-syms <file>        --redefine-sym for all symbol pairs 
+                                     listed in <file>
+     --srec-len <number>           Restrict the length of generated Srecords
+     --srec-forceS3                Restrict the type of generated Srecords to S3
+     --strip-symbols <file>        -N for all symbols listed in <file>
+     --strip-unneeded-symbols <file>
+                                   --strip-unneeded-symbol for all symbols listed
+                                     in <file>
+     --keep-symbols <file>         -K for all symbols listed in <file>
+     --localize-symbols <file>     -L for all symbols listed in <file>
+     --globalize-symbols <file>    --globalize-symbol for all in <file>
+     --keep-global-symbols <file>  -G for all symbols listed in <file>
+     --weaken-symbols <file>       -W for all symbols listed in <file>
+     --add-symbol <name>=[<section>:]<value>[,<flags>]  Add a symbol
+     --alt-machine-code <index>    Use the target's <index>'th alternative machine
+     --writable-text               Mark the output text as writable
+     --readonly-text               Make the output text write protected
+     --pure                        Mark the output file as demand paged
+     --impure                      Mark the output file as impure
+     --prefix-symbols <prefix>     Add <prefix> to start of every symbol name
+     --prefix-sections <prefix>    Add <prefix> to start of every section name
+     --prefix-alloc-sections <prefix>
+                                   Add <prefix> to start of every allocatable
+                                     section name
+     --file-alignment <num>        Set PE file alignment to <num>
+     --heap <reserve>[,<commit>]   Set PE reserve/commit heap to <reserve>/
+                                   <commit>
+     --image-base <address>        Set PE image base to <address>
+     --section-alignment <num>     Set PE section alignment to <num>
+     --stack <reserve>[,<commit>]  Set PE reserve/commit stack to <reserve>/
+                                   <commit>
+     --subsystem <name>[:<version>]
+                                   Set PE subsystem to <name> [& <version>]
+     --compress-debug-sections[={none|zlib|zlib-gnu|zlib-gabi}]
+                                   Compress DWARF debug sections using zlib
+     --decompress-debug-sections   Decompress DWARF debug sections using zlib
+  -v --verbose                     List all object files modified
+  @<file>                          Read options from <file>
+  -V --version                     Display this program's version number
+  -h --help                        Display this output
+     --info                        List object formats & architectures supported
+arm-none-eabi-objcopy: supported targets: elf32-littlearm elf32-bigarm elf32-little elf32-big plugin srec symbolsrec verilog tekhex binary ihex
+
+18:32:20 Build Finished (took 2s.668ms)
+

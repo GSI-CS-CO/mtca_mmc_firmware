@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<item value="&quot;../../FreeRTOS_LPC2136/portable&quot;" key="org.eclipse.cdt.utils.ui.controls.FileListControl"/>
+	<section name="org.eclipse.cdt.ui.text.hover.CMacroExpansionExploration">
+	</section>
+	<section name="PDOMSearchPage">
+		<item value="false" key="caseSensitive"/>
+		<item value="227191" key="searchFlags"/>
+		<list key="previousPatterns">
+			<item value="HOST_TYPE"/>
+			<item value="link_info_table"/>
+			<item value="module_process_response"/>
+			<item value="serial_port"/>
+			<item value="NODBG"/>
+			<item value="PINSEL0"/>
+			<item value="putchar_0"/>
+			<item value="UART_H_"/>
+			<item value="UART0_RBR"/>
+			<item value="VPB"/>
+			<item value="uart_init"/>
+			<item value="UART0_ISR"/>
+			<item value="U0RBR"/>
+			<item value="major_fw_rev"/>
+			<item value="project_defs"/>
+			<item value="DENX"/>
+			<item value="version"/>
+			<item value="dprintf"/>
+			<item value="FRU:"/>
+			<item value="ipmi_get_device_sdr_info"/>
+			<item value="report_init"/>
+			<item value="HotSwap"/>
+			<item value="AMC_FTRN_IN_LIBERA_SLOT_7"/>
+			<item value="PAYLOAD_BLINK_GREEN"/>
+			<item value="payload_deactivate"/>
+			<item value="amc_payload_state"/>
+			<item value="tskHostType"/>
+			<item value="tsk_payload_monitor"/>
+			<item value="xTaskCreate"/>
+			<item value="pcName"/>
+			<item value="tskBlink"/>
+			<item value="switch_state_poll"/>
+			<item value="mmc_hot_swap_state_change"/>
+			<item value="HOT_SWAP_HANDLE"/>
+			<item value="payload_activate"/>
+			<item value="generic_sensor_init"/>
+			<item value="sensor_add"/>
+			<item value="ipmi_get_sensor_reading"/>
+			<item value="GET_SENSOR_READING"/>
+			<item value="module_quiesce"/>
+			<item value="payload_quiesce"/>
+			<item value="PAYLOAD_PIN_PCIE_RESET"/>
+			<item value="white_rabbit_pp_state"/>
+			<item value="ipmi_process_libera_req"/>
+			<item value="picmg_process_command"/>
+			<item value="mmc_set_port_state"/>
+			<item value="payload_port_set_state"/>
+			<item value="JTAGSW"/>
+			<item value="PG"/>
+			<item value="iopin_initialize"/>
+			<item value="PAYLOAD_PIN_MTCA4_EN"/>
+			<item value="TRIG_MTCA4"/>
+			<item value="PAYLOAD_PIN_RESET"/>
+			<item value="P0_16"/>
+			<item value="MTCA4_EN"/>
+		</list>
+	</section>
+	<section name="completion_proposal_size">
+	</section>
+</section>

@@ -1,0 +1,74 @@
+18:32:16 **** Build of configuration Debug for project FreeRTOS_LPC2136 ****
+make -r all 
+Building file: ../portable/heap_1.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -I"../include" -I"../portable" -O0 -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"portable/heap_1.d" -MT"portable/heap_1.o" -MT"portable/heap_1.d" -o "portable/heap_1.o" "../portable/heap_1.c"
+Finished building: ../portable/heap_1.c
+ 
+Building file: ../portable/port.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -I"../include" -I"../portable" -O0 -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"portable/port.d" -MT"portable/port.o" -MT"portable/port.d" -o "portable/port.o" "../portable/port.c"
+Finished building: ../portable/port.c
+ 
+Building file: ../portable/portISR.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -I"../include" -I"../portable" -O0 -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"portable/portISR.d" -MT"portable/portISR.o" -MT"portable/portISR.d" -o "portable/portISR.o" "../portable/portISR.c"
+Finished building: ../portable/portISR.c
+ 
+Building file: ../croutine.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -I"../include" -I"../portable" -O0 -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"croutine.d" -MT"croutine.o" -MT"croutine.d" -o "croutine.o" "../croutine.c"
+Finished building: ../croutine.c
+ 
+Building file: ../event_groups.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -I"../include" -I"../portable" -O0 -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"event_groups.d" -MT"event_groups.o" -MT"event_groups.d" -o "event_groups.o" "../event_groups.c"
+Finished building: ../event_groups.c
+ 
+Building file: ../list.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -I"../include" -I"../portable" -O0 -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"list.d" -MT"list.o" -MT"list.d" -o "list.o" "../list.c"
+Finished building: ../list.c
+ 
+Building file: ../queue.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -I"../include" -I"../portable" -O0 -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"queue.d" -MT"queue.o" -MT"queue.d" -o "queue.o" "../queue.c"
+Finished building: ../queue.c
+ 
+Building file: ../tasks.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -I"../include" -I"../portable" -O0 -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"tasks.d" -MT"tasks.o" -MT"tasks.d" -o "tasks.o" "../tasks.c"
+../tasks.c: In function 'prvIdleTask':
+../tasks.c:2554:2: warning: implicit declaration of function 'printf' [-Wimplicit-function-declaration]
+  printf("IDLE\n");
+  ^
+Finished building: ../tasks.c
+ 
+Building file: ../timers.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -I"../include" -I"../portable" -O0 -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -mcpu=arm7tdmi -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"timers.d" -MT"timers.o" -MT"timers.d" -o "timers.o" "../timers.c"
+Finished building: ../timers.c
+ 
+Building target: libFreeRTOS_LPC2136.a
+Invoking: MCU Archiver
+arm-none-eabi-ar -r  "libFreeRTOS_LPC2136.a"  ./portable/heap_1.o ./portable/port.o ./portable/portISR.o  ./croutine.o ./event_groups.o ./list.o ./queue.o ./tasks.o ./timers.o   
+arm-none-eabi-ar: creating libFreeRTOS_LPC2136.a
+Finished building target: libFreeRTOS_LPC2136.a
+ 
+make --no-print-directory post-build
+Performing post-build steps
+arm-none-eabi-size "libFreeRTOS_LPC2136.a" ; # arm-none-eabi-objdump -h -S "libFreeRTOS_LPC2136.a" >"libFreeRTOS_LPC2136.lss"
+   text	   data	    bss	    dec	    hex	filename
+    360	      0	  24584	  24944	   6170	heap_1.o (ex libFreeRTOS_LPC2136.a)
+    824	      0	      0	    824	    338	port.o (ex libFreeRTOS_LPC2136.a)
+    680	      4	      0	    684	    2ac	portISR.o (ex libFreeRTOS_LPC2136.a)
+   1924	      0	    128	   2052	    804	croutine.o (ex libFreeRTOS_LPC2136.a)
+   1836	      0	      0	   1836	    72c	event_groups.o (ex libFreeRTOS_LPC2136.a)
+    660	      0	      0	    660	    294	list.o (ex libFreeRTOS_LPC2136.a)
+   3760	      0	      0	   3760	    eb0	queue.o (ex libFreeRTOS_LPC2136.a)
+   7834	      4	    252	   8090	   1f9a	tasks.o (ex libFreeRTOS_LPC2136.a)
+      0	      0	      0	      0	      0	timers.o (ex libFreeRTOS_LPC2136.a)
+ 
+
+18:32:16 Build Finished (took 466ms)
+
