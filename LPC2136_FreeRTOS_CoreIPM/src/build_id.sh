@@ -2,6 +2,10 @@
 
 echo "Gathering info to generate build info header..."
 
+pwd
+
+build_id_file="./LPC2136_FreeRTOS_CoreIPM/src/build_id.h"
+
 
 build_date=$(date)
 
@@ -46,21 +50,21 @@ git_log=$(git log --oneline --decorate=no -n 5)
 gcc_version=$(arm-none-eabi-gcc --version | grep eabi)
 
 #write build info to header file
-echo "const char *MMC_BUILD_ID =\"\\"            > ../src/build_id.h
-echo "-- Build info -----------------------\n\\">> ../src/build_id.h
-echo "Project     : FTRN AMC MMC\n\\"           >> ../src/build_id.h
-echo "Build date  : $build_date\n\\"            >> ../src/build_id.h
-echo "Prepared by : $git_user <$git_email>\n\\" >> ../src/build_id.h
-echo "Source info : $git_source_info\n\\"       >> ../src/build_id.h
-echo "OS version  : $os_info\n\\"               >> ../src/build_id.h
-echo "Compiler    : $gcc_version\n\\"           >> ../src/build_id.h
-echo "\n\\"                                     >> ../src/build_id.h
+echo "const char *MMC_BUILD_ID =\"\\"            > $build_id_file
+echo "-- Build info -----------------------\n\\">> $build_id_file
+echo "Project     : FTRN AMC MMC\n\\"           >> $build_id_file
+echo "Build date  : $build_date\n\\"            >> $build_id_file
+echo "Prepared by : $git_user <$git_email>\n\\" >> $build_id_file
+echo "Source info : $git_source_info\n\\"       >> $build_id_file
+echo "OS version  : $os_info\n\\"               >> $build_id_file
+echo "Compiler    : $gcc_version\n\\"           >> $build_id_file
+echo "\n\\"                                     >> $build_id_file
 
 while IFS= read -r log_line
 do
-  echo "$log_line\n\\" >> ../src/build_id.h
+  echo "$log_line\n\\" >> $build_id_file
 done <<< "$git_log"
 
 
-echo "\n\n\";" >> ../src/build_id.h
+echo "\n\n\";" >> $build_id_file
 

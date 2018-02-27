@@ -1,3 +1,8 @@
+.PHONY: build_id
+
+build_id:
+	./LPC2136_FreeRTOS_CoreIPM/src/build_id.sh
+
 freertos:
 	cd FreeRTOS_LPC2136/Release && $(MAKE)
 
@@ -10,16 +15,18 @@ freertos_debug:
 freertos_debug-clean:
 	cd FreeRTOS_LPC2136/Debug && $(MAKE) clean
 
-mmc: freertos_debug
+mmc: build_id freertos_debug
 	cd LPC2136_FreeRTOS_CoreIPM/Debug && $(MAKE)
 
 mmc-clean: freertos_debug-clean
+	rm -f ./LPC2136_FreeRTOS_CoreIPM/src/build_id.h
 	cd LPC2136_FreeRTOS_CoreIPM/Debug && $(MAKE) clean
 
-debug: freertos_debug
+debug: build_id freertos_debug
 	cd LPC2136_FreeRTOS_CoreIPM/Debug && $(MAKE)
 
 debug-clean: freertos_debug-clean
+	rm -f ./LPC2136_FreeRTOS_CoreIPM/src/build_id.h
 	cd LPC2136_FreeRTOS_CoreIPM/Debug && $(MAKE) clean
 
 # Program MMC using LPC-Link

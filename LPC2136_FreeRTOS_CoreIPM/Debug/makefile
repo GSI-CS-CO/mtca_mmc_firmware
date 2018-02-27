@@ -26,10 +26,7 @@ endif
 # Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
-all: pre-build main-build
-
-# Main-build Target
-main-build: LPC2136_FreeRTOS_CoreIPM.axf
+all: LPC2136_FreeRTOS_CoreIPM.axf
 
 # Tool invocations
 LPC2136_FreeRTOS_CoreIPM.axf: $(OBJS) $(USER_OBJS)
@@ -45,16 +42,12 @@ clean:
 	-$(RM) $(EXECUTABLES)$(OBJS)$(C_DEPS) LPC2136_FreeRTOS_CoreIPM.axf LPC2136_FreeRTOS_CoreIPM.hex LPC2136_FreeRTOS_CoreIPM.bin
 	-@echo ' '
 
-pre-build:
-	-../src/build_id.sh
-	-@echo ' '
-
 post-build:
 	-@echo 'Performing post-build steps'
-	-arm-none-eabi-size "LPC2136_FreeRTOS_CoreIPM.axf" ; arm-none-eabi-objcopy -v -O binary "LPC2136_FreeRTOS_CoreIPM.axf" "LPC2136_FreeRTOS_CoreIPM.bin" checksum -p LPC2138 -d "LPC2136_FreeRTOS_CoreIPM.bin" ; arm-none-eabi-objcopy -v -O ihex "LPC2136_FreeRTOS_CoreIPM.axf" "LPC2136_FreeRTOS_CoreIPM.hex"
+	-arm-none-eabi-size "LPC2136_FreeRTOS_CoreIPM.axf" ; arm-none-eabi-objcopy -v -O binary "LPC2136_FreeRTOS_CoreIPM.axf" "LPC2136_FreeRTOS_CoreIPM.bin"; checksum -p LPC2138 -d "LPC2136_FreeRTOS_CoreIPM.bin" ; arm-none-eabi-objcopy -v -O ihex "LPC2136_FreeRTOS_CoreIPM.axf" "LPC2136_FreeRTOS_CoreIPM.hex"
 	-@echo ' '
 
 .PHONY: all clean dependents
-.SECONDARY: main-build pre-build post-build
+.SECONDARY: post-build
 
 -include ../makefile.targets
