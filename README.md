@@ -97,7 +97,7 @@ To test LPC-Link run:
     !0. IN_USE	Device is connected already (NXP - LPC-Link)
 
 
-# Flashing firmware to MMC
+# Flashing firmware to MMC with LPC-Link
 
 To load new firmware to MMC run:
 
@@ -120,6 +120,25 @@ To load new firmware to MMC run:
     ...
 
 NOTE: You might get an error after this part of flash-utility output, but this does not seem to have any influence on the actuall flashing procedure.
+
+
+# Flashing firmware to MMC with OpenOCD (Olimex OpenOCD JTAG)
+
+To load new firmware to MMC with OpenOCD:
+
+    $ make flash-mmc-openocd
+    ...auto erase enabled
+    auto unlock enabled
+    wrote 131072 bytes from file ./LPC2136_FreeRTOS_CoreIPM/Debug/LPC2136_FreeRTOS_CoreIPM.bin in 19.077818s (6.709 KiB/s)
+    ...
+
+
+NOTE: This is still experimental. Flashing ends with error but MMC is flashed and works.
+Test was done using Olimex ARM-USB-OCD and Olimex ARM-JTAG-20-10 adapter
+
+https://www.olimex.com/Products/ARM/JTAG/ARM-USB-OCD/
+
+https://www.olimex.com/Products/ARM/JTAG/ARM-JTAG-20-10/
 
 
 # MMC console
