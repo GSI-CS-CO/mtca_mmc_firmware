@@ -34,7 +34,7 @@ flash: mmc
 	crt_emu_a7_nxp -flash-load-partial ./LPC2136_FreeRTOS_CoreIPM/Debug/LPC2136_FreeRTOS_CoreIPM.axf -g -2 -vendor=NXP -pLPC2138  -wire=winUSB -s100
 
 flash-debug: debug
-	crt_emu_a7_nxp -flash-load-partial ./LPC2136_FreeRTOS_CoreIPM/Debug/LPC2136_FreeRTOS_CoreIPM.axf   -g -2 -vendor=NXP -pLPC2138  -wire=winUSB -s100
+	crt_emu_a7_nxp -flash-load-partial ./LPC2136_FreeRTOS_CoreIPM/Debug/LPC2136_FreeRTOS_CoreIPM.axf -g -2 -vendor=NXP -pLPC2138  -wire=winUSB -s100
 
 # Init Philips (or NXP) LPCXpresso LPC-Link [0001] as LPC-Link Probe
 lpclink-init: 
@@ -46,3 +46,8 @@ lpclink-init:
 lpclink-test:
 	crt_emu_a7_nxp -info-emu -wire=winusb
 	crt_emu_a7_nxp -info-target -pLPC2138 -wire=winusb -4
+
+# Flash with OpenOCD
+flash-mmc-openocd: mmc
+	openocd -f "./openocd/mmc_openocd.cfg" -c "lpprog ./LPC2136_FreeRTOS_CoreIPM/Debug/LPC2136_FreeRTOS_CoreIPM.bin"
+
