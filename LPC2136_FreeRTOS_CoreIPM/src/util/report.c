@@ -31,8 +31,12 @@
 #define BUFFER_LENGTH 28
 static unsigned int interest_level=0;
 
-void report_init(int level) {
+void set_report_level(int level) {
 	interest_level = level;
+}
+
+int get_report_level(void) {
+	return interest_level;
 }
 
 void error(const char* subsystem, const char* format, ...) {

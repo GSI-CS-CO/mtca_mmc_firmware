@@ -202,7 +202,9 @@ void tsk_payload_fsm() {
 			iopin_clear(PAYLOAD_PIN_QUISCE_OUT);
 			iopin_set  (PAYLOAD_PIN_FPGA_CONFIG);
 
-			if (g_module_state.sensors.CONF_DONE) {
+			// normally wait for CONF_DONE but when outside on AUX power,
+			// continue to active state even if CONF_DONE not asserted
+			if (g_module_state.sensors.CONF_DONE || iopin_get(STANDALONE)) {
 				info(PAYLOAD_FSM, "CONF_DONE Asserted");
 				info(PAYLOAD_FSM, "Payload active");
 
@@ -459,27 +461,6 @@ void payload_port_set_state(unsigned char link_type, char *link_type_name,unsign
 			break;
 	}
 
-
-/*
-	if(link_type == AMC_LINK_PCI_EXPRESS){  // PCIe
-		g_module_state.ports.PCIe = state;
-        if(state){
-        	iopin_set(PAYLOAD_PIN_PCIE_RESET);
-        }else{
-        	iopin_clear(PAYLOAD_PIN_PCIE_RESET);
-        }
-	}
-
-	if(link_type == FTRN_LIBERA_TRIGGER){  // Libera triggers on PORTs 6-7
-		g_module_state.ports.LiberaTrig = state;
-        if(state){
-    		iopin_set(PAYLOAD_PIN_IN_SLOT8);
-        }else{
-    		iopin_clear(PAYLOAD_PIN_IN_SLOT8);
-        }
-
-	}
-*/
 
 	if (state) {
 		iopin_set(LED2_RED);

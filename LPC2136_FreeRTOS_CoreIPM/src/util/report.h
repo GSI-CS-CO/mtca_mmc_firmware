@@ -25,7 +25,8 @@
 #ifndef DEBUG_H_
 #define DEBUG_H_
 
-void report_init(int interestLevel);
+void set_report_level(int interestLevel);
+int  get_report_level(void);
 
 void error(const char* subsystem, const char* format,...);
 void info(const char* subsystem, const char* format,...);

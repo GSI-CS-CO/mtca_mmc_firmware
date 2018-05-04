@@ -41,11 +41,23 @@
 #include "coreIPM/i2c.h"
 #include "coreIPM/picmg.h"
 #include "coreIPM/module.h"
+#include "coreIPM/amc.h"
 
 /* from src */
 #include "payload.h"
 #include "mmc_config.h"
 #include "build_id.h"
+
+
+#define HELP_TEXT "\
+MMC Console commands:\n\
+0-9 : set DEBUG Report level\n\
+i,I : print MMC build info\n\
+p,P : disable/enable PCIe port\n\
+l,L : MMC LED test - leds OFF/ON\n\
+o   : exit MMC LED test\n\
+s   : display taks list with status and stack info\n\
+"
 
 
 SemaphoreHandle_t slowTask_sem;
@@ -70,6 +82,7 @@ static void tskCoreIPM_hardclock(){
 static void tskHostType(){
 	unsigned int on_delay, off_delay;
 	char c;
+	char statusmsg[400];
 
 	// default state
 	g_module_state.host_type = AMC_FTRN_UNKNOWN_HOST;
@@ -84,6 +97,7 @@ static void tskHostType(){
 
 	while(1){
 		// Check host type when payload in active state
+
 		if (g_module_state.payload_state == PAYLOAD_ACTIVE            ||
 			g_module_state.payload_state == PAYLOAD_ACTIVE_PCIE_RESET ||
 			g_module_state.payload_state == PAYLOAD_ACTIVE_PCIE_RESET_DEASSERT ||
@@ -98,17 +112,22 @@ static void tskHostType(){
 					g_module_state.host_type = AMC_FTRN_OUTSIDE;
 					on_delay  = 0;
 					off_delay = 1000;
-					// allow enabling of Libera triggers by SW when outside the crate
+					// allow enabling of Libera triggers by SW
 					iopin_clear(PAYLOAD_PIN_IN_LIBERA);
+					// enable PCIe
+					iopin_set(PAYLOAD_PIN_PCIE_RESET);
 				}
 			// currently MTCA.4 triggers are enabled by SW via FPGA
 			// MMC/MCH are not involved, MMC can only observe when SW enabled MTCA.4 triggers
 			}else if(iopin_get(PAYLOAD_PIN_MTCA4_EN)){
-				g_module_state.host_type = AMC_FTRN_IN_MICROTCA_4;
-				on_delay  = 1000;
-				off_delay = 1000;
-				iopin_clear(PAYLOAD_PIN_IN_LIBERA);
-
+				if(g_module_state.host_type != AMC_FTRN_IN_MICROTCA_4){
+					debug(3,"HOST_TYPE","Change: %X >> %X", g_module_state.host_type,AMC_FTRN_IN_MICROTCA_4);
+					info("HOST_TYPE","AMC_FTRN_IN_MICROTCA_4");
+					g_module_state.host_type = AMC_FTRN_IN_MICROTCA_4;
+					on_delay  = 1000;
+					off_delay = 1000;
+					iopin_clear(PAYLOAD_PIN_IN_LIBERA);
+				}
 			}else if(g_module_state.ipmi_amc_host){ // got host type message via IPMI (in Libera)
 				if(g_module_state.host_type != g_module_state.ipmi_amc_host){
 					debug(3,"HOST_TYPE","Ipmi Msg: %X >> %X", g_module_state.host_type,g_module_state.ipmi_amc_host);
@@ -166,6 +185,7 @@ static void tskHostType(){
 			iopin_led(LED_WHITE,0,0);
 			vTaskDelay(off_delay);
 
+
 		}else{
 			g_module_state.host_type = AMC_FTRN_UNKNOWN_HOST;
 			iopin_clear(PAYLOAD_PIN_IN_LIBERA);
@@ -176,14 +196,61 @@ static void tskHostType(){
 		// check if user wanted to change debug level prints
 		// or read build info
 		c= U0RBR;
-		if((c >= 0x30) && (c<= 0x39)){ // check if ACII character 0-9
-			c-=0x30;
-			report_init(c); // change report level
-			info("DEBUG","Report level set to %d",c);
-		}else if(c=='i' || c=='I'){
-			info("INFO","MMC build info:");
-			printf(MMC_BUILD_ID);
+
+		switch(c){
+			case 0x30 ... 0x39:
+				c-=0x30;
+				set_report_level(c); // change report level
+				info("DEBUG","Report level set to %d",get_report_level());
+				break;
+			case 'i':
+			case 'I':
+				info("INFO","MMC build info:");
+				printf(MMC_BUILD_ID);
+				break;
+			case 'p': // disable PCIe port
+				info("INFO","Disabling PCIe port");
+				payload_port_set_state(AMC_LINK_PCI_EXPRESS, "PCIe",0,0);
+				break;
+			case 'P': // enable PCIe port
+				info("INFO","Enabling PCIe port");
+				payload_port_set_state(AMC_LINK_PCI_EXPRESS, "PCIe",0,1);
+				break;
+			case 'l': // turn OFF all MMC LEDs
+				info("INFO","LED test ON: LEDs OFF");
+				g_module_state.led_test_mode = LED_TEST_ON_LED_OFF;
+				iopin_led(LED_WHITE,0,0);
+				iopin_led(LED_ERROR,0,0);
+				iopin_led(LED_OK   ,0,0);
+				iopin_led(BLUE_LED ,1,0);
+				break;
+			case 'L': // turn ON all MMC LEDs
+				info("INFO","LED test ON: LEDs ON");
+				g_module_state.led_test_mode = LED_TEST_ON_LED_ON;
+				iopin_led(LED_WHITE,0,0);
+				iopin_led(LED_ERROR,0,0);
+				iopin_led(LED_OK   ,0,0);
+				iopin_led(BLUE_LED ,1,0);
+				break;
+			case 'o': // turn OFF all LED test
+				info("INFO","LED test OFF");
+				g_module_state.led_test_mode = LED_TEST_OFF;
+				break;
+			case 's': // display taks list with status and stack info
+				vTaskList(&statusmsg[0]);
+				printf("%s", statusmsg);
+				break;
+			case 'h':
+				printf(HELP_TEXT);
+	/*
+			}else if(c=='A'){ // Skip CONF_DONE check
+				info("INFO","Forcing ACTIVE STATE");
+				g_module_state.force_active = 1;
+	*/
+
+
 		}
+
 	}//while(1)
 }
 
@@ -193,7 +260,7 @@ static void init_task(void* pvt){
 	info("INIT","Cosylab MMC startup!");
 	info("INIT","CoreIPM init!");
 
-	report_init(0); // no debug prints
+	set_report_level(0); // no debug prints
 	//CoreIPM init
 	ws_init();
 	i2c_initialize();

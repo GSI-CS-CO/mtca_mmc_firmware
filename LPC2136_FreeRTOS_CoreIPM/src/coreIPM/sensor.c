@@ -174,6 +174,7 @@ sensor_add(
 
 	if(sensor_data){
 		sensor_data->sensor_id=current_sensor_count;
+		sensor_data->sdr=sdr;
 		sensor[current_sensor_count] = sensor_data;
 	}
 
@@ -452,10 +453,10 @@ readings.
 void
 ipmi_get_sensor_reading( IPMI_PKT *pkt )
 {
-	GET_SENSOR_READING_CMD_REQ *req = ( GET_SENSOR_READING_CMD_REQ * )(pkt->req);
-	GET_SENSOR_READING_RESP *resp = ( GET_SENSOR_READING_RESP * )(pkt->resp);
+	GET_SENSOR_READING_CMD_REQ *req  = ( GET_SENSOR_READING_CMD_REQ * )(pkt->req);
+	GET_SENSOR_READING_RESP    *resp = ( GET_SENSOR_READING_RESP    * )(pkt->resp);
 	int i, found = 0;
-	debug(3,"GET_SENSOR_READ","number %d/%d",req->sensor_number,current_sensor_count);
+	debug(3,"GET_SENSOR_READ","number %d/%d",req->sensor_number,current_sensor_count-1);
 	
 
 	/* Given the req->sensor_number return the reading */
@@ -828,3 +829,415 @@ get_sdr( IPMI_PKT *pkt )
 	
 }
 
+
+
+/* Sensor alarm checking function adapted from CERN MMCv2 implementation, credits in this file header */
+void check_sensor_event( SENSOR_DATA * sensor )
+{
+    /** Should be rewritten to be compliant with RTM management !! */
+    uchar ev = 0xFF;
+    uchar ev_type;
+
+    EVENT_CONFIG* event_config;
+    get_event_config(event_config);
+
+    //configASSERT(sensor);
+/*
+    SDR_type_01h_t * sdr = ( SDR_type_01h_t * ) sensor->sdr;
+    configASSERT(sdr);
+
+    if( sdr->hdr.rectype != TYPE_01 ) {
+        return;
+    }
+*/
+    FULL_SENSOR_RECORD *sdr = sensor->sdr;
+
+    /** Compare value with threshold */
+    switch(sensor->state) {
+    case SENSOR_STATE_HIGH_NON_REC:
+        if(sensor->signed_flag){
+            if(((char)sensor->last_sensor_reading) <= (((char)sdr->upper_non_recoverable_threshold) - (1+((char)sdr->positive_going_threshold_hysteresis_value)))){
+                if(sensor->asserted_event.upper_non_recoverable_go_high){
+                    ev = IPMI_THRESHOLD_UNR_GH;
+                    sensor->asserted_event.upper_non_recoverable_go_high = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+                sensor->state = SENSOR_STATE_HIGH_CRIT;
+            }
+
+            if(sensor->old_state != sensor->state && ((char)sensor->last_sensor_reading) <= ((char)sdr->upper_non_recoverable_threshold) && !sensor->asserted_event.upper_non_recoverable_go_low){
+                ev = IPMI_THRESHOLD_UNR_GL;
+                sensor->asserted_event.upper_non_recoverable_go_low = 1;
+                ev_type = ASSERTION_EVENT;
+            }
+            else if(((char)sensor->last_sensor_reading) >= (((char)sdr->upper_non_recoverable_threshold) + (1+((char)sdr->negative_going_threshold_hysteresis_value)))){
+                if(sensor->asserted_event.upper_non_recoverable_go_low){
+                    ev = IPMI_THRESHOLD_UNR_GL;
+                    sensor->asserted_event.upper_non_recoverable_go_low = 0;
+
+                }
+            }
+        }
+        else{
+            if(sensor->last_sensor_reading <= (sdr->upper_non_recoverable_threshold - (1+sdr->positive_going_threshold_hysteresis_value))){
+                if(sensor->asserted_event.upper_non_recoverable_go_high){
+                    ev = IPMI_THRESHOLD_UNR_GH;
+                    sensor->asserted_event.upper_non_recoverable_go_high = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+                sensor->state = SENSOR_STATE_HIGH_CRIT;
+            }
+
+            if(sensor->old_state != sensor->state && sensor->last_sensor_reading <= sdr->upper_non_recoverable_threshold && !sensor->asserted_event.upper_non_recoverable_go_low){
+                ev = IPMI_THRESHOLD_UNR_GL;
+                sensor->asserted_event.upper_non_recoverable_go_low = 1;
+                ev_type = ASSERTION_EVENT;
+            }
+            else if(sensor->last_sensor_reading >= (sdr->upper_non_recoverable_threshold + (1+sdr->negative_going_threshold_hysteresis_value))){
+                if(sensor->asserted_event.upper_non_recoverable_go_low){
+                    ev = IPMI_THRESHOLD_UNR_GL;
+                    sensor->asserted_event.upper_non_recoverable_go_low = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+            }
+        }
+        break;
+
+    case SENSOR_STATE_HIGH_CRIT:
+        if(sensor->signed_flag){
+            if(((char)sensor->last_sensor_reading) >= ((char)sdr->upper_non_recoverable_threshold)){
+                ev = IPMI_THRESHOLD_UNR_GH;
+                sensor->asserted_event.upper_non_recoverable_go_high = 1;
+                ev_type = ASSERTION_EVENT;
+                sensor->state = SENSOR_STATE_HIGH_NON_REC;
+            }
+            else if(((char)sensor->last_sensor_reading) <= (((char)sdr->upper_critical_threshold) - (1+((char)sdr->positive_going_threshold_hysteresis_value)))){
+                if(sensor->asserted_event.upper_critical_go_high){
+                    ev = IPMI_THRESHOLD_UC_GH;
+                    sensor->asserted_event.upper_critical_go_high = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+                sensor->state = SENSOR_STATE_HIGH;
+            }
+
+            if(sensor->old_state != sensor->state && ((char)sensor->last_sensor_reading) <= ((char)sdr->upper_critical_threshold) && !sensor->asserted_event.upper_critical_go_low){
+                ev = IPMI_THRESHOLD_UC_GL;
+                sensor->asserted_event.upper_critical_go_low = 1;
+                ev_type = ASSERTION_EVENT;
+            }
+            else if(((char)sensor->last_sensor_reading) >= (((char)sdr->upper_critical_threshold) + (1+((char)sdr->negative_going_threshold_hysteresis_value)))){
+                if(sensor->asserted_event.upper_critical_go_low){
+                    ev = IPMI_THRESHOLD_UC_GL;
+                    sensor->asserted_event.upper_critical_go_low = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+            }
+        }
+        else{
+            if(sensor->last_sensor_reading >= sdr->upper_non_recoverable_threshold){
+                ev = IPMI_THRESHOLD_UNR_GH;
+                sensor->asserted_event.upper_non_recoverable_go_high = 1;
+                ev_type = ASSERTION_EVENT;
+                sensor->state = SENSOR_STATE_HIGH_NON_REC;
+            }
+            else if(sensor->last_sensor_reading <= (sdr->upper_critical_threshold - (1+sdr->positive_going_threshold_hysteresis_value))){
+                if(sensor->asserted_event.upper_critical_go_high){
+                    ev = IPMI_THRESHOLD_UC_GH;
+                    sensor->asserted_event.upper_critical_go_high = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+                sensor->state = SENSOR_STATE_HIGH;
+            }
+
+            if(sensor->old_state != sensor->state && sensor->last_sensor_reading <= sdr->upper_critical_threshold && !sensor->asserted_event.upper_critical_go_low){
+                ev = IPMI_THRESHOLD_UC_GL;
+                sensor->asserted_event.upper_critical_go_low = 1;
+                ev_type = ASSERTION_EVENT;
+            }
+            else if(sensor->last_sensor_reading >= (sdr->upper_critical_threshold + (1+sdr->negative_going_threshold_hysteresis_value))){
+                if(sensor->asserted_event.upper_critical_go_low){
+                    ev = IPMI_THRESHOLD_UC_GL;
+                    sensor->asserted_event.upper_critical_go_low = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+            }
+        }
+
+        break;
+
+    case SENSOR_STATE_HIGH:
+        if(sensor->signed_flag){
+            if(((char)sensor->last_sensor_reading) >= ((char)sdr->upper_critical_threshold)){
+                ev = IPMI_THRESHOLD_UC_GH;
+                sensor->asserted_event.upper_critical_go_high = 1;
+                ev_type = ASSERTION_EVENT;
+                sensor->state = SENSOR_STATE_HIGH_CRIT;
+            }
+            else if(((char)sensor->last_sensor_reading) <= (((char)sdr->upper_non_critical_threshold) - (1+((char)sdr->positive_going_threshold_hysteresis_value)))){
+                if(sensor->asserted_event.upper_non_critical_go_high){
+                    ev = IPMI_THRESHOLD_UNC_GH;
+                    sensor->asserted_event.upper_non_critical_go_high = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+                sensor->state = SENSOR_STATE_NORMAL;
+            }
+
+            if(sensor->old_state != sensor->state && ((char)sensor->last_sensor_reading) <= ((char)sdr->upper_non_critical_threshold) && !sensor->asserted_event.upper_non_critical_go_low){
+                ev = IPMI_THRESHOLD_UNC_GL;
+                sensor->asserted_event.upper_non_critical_go_low = 1;
+                ev_type = ASSERTION_EVENT;
+            }
+            else if(((char)sensor->last_sensor_reading) >= (((char)sdr->upper_non_critical_threshold) + (1+((char)sdr->negative_going_threshold_hysteresis_value)))){
+                if(sensor->asserted_event.upper_non_critical_go_low){
+                    ev = IPMI_THRESHOLD_UNC_GL;
+                    sensor->asserted_event.upper_non_critical_go_low = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+            }
+        }
+        else{
+            if(sensor->last_sensor_reading >= sdr->upper_critical_threshold){
+                ev = IPMI_THRESHOLD_UC_GH;
+                sensor->asserted_event.upper_critical_go_high = 1;
+                ev_type = ASSERTION_EVENT;
+                sensor->state = SENSOR_STATE_HIGH_CRIT;
+            }
+            else if(sensor->last_sensor_reading <= (sdr->upper_non_critical_threshold - (1+sdr->positive_going_threshold_hysteresis_value))){
+                if(sensor->asserted_event.upper_non_critical_go_high){
+                    ev = IPMI_THRESHOLD_UNC_GH;
+                    sensor->asserted_event.upper_non_critical_go_high = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+                sensor->state = SENSOR_STATE_NORMAL;
+            }
+
+            if(sensor->old_state != sensor->state && sensor->last_sensor_reading <= sdr->upper_non_critical_threshold && !sensor->asserted_event.upper_non_critical_go_low){
+                ev = IPMI_THRESHOLD_UNC_GL;
+                sensor->asserted_event.upper_non_critical_go_low = 1;
+                ev_type = ASSERTION_EVENT;
+            }
+            else if(sensor->last_sensor_reading >= (sdr->upper_non_critical_threshold + (1+sdr->negative_going_threshold_hysteresis_value))){
+                if(sensor->asserted_event.upper_non_critical_go_low){
+                    ev = IPMI_THRESHOLD_UNC_GL;
+                    sensor->asserted_event.upper_non_critical_go_low = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+            }
+        }
+        break;
+
+    case SENSOR_STATE_NORMAL:
+        if(sensor->signed_flag){
+            if(((char)sensor->last_sensor_reading) >= ((char)sdr->upper_non_critical_threshold)){
+                ev = IPMI_THRESHOLD_UNC_GH;
+                sensor->asserted_event.upper_non_critical_go_high = 1;
+                ev_type = ASSERTION_EVENT;
+                sensor->state = SENSOR_STATE_HIGH;
+            }
+
+            else if(((char)sensor->last_sensor_reading) <= ((char)sdr->lower_non_critical_threshold)){
+                ev = IPMI_THRESHOLD_LNC_GL;
+                ev_type = ASSERTION_EVENT;
+                sensor->state = SENSOR_STATE_LOW;
+            }
+        }
+        else{
+            if(sensor->last_sensor_reading >= sdr->upper_non_critical_threshold){
+                ev = IPMI_THRESHOLD_UNC_GH;
+                sensor->asserted_event.upper_non_critical_go_high = 1;
+                ev_type = ASSERTION_EVENT;
+                sensor->state = SENSOR_STATE_HIGH;
+            }
+
+            else if(sensor->last_sensor_reading <= sdr->lower_non_critical_threshold){
+                ev = IPMI_THRESHOLD_LNC_GL;
+                ev_type = ASSERTION_EVENT;
+                sensor->state = SENSOR_STATE_LOW;
+            }
+        }
+        break;
+
+    case SENSOR_STATE_LOW:
+        if(sensor->signed_flag){
+            if(((char)sensor->last_sensor_reading) <= ((char)sdr->lower_critical_threshold)){
+                ev = IPMI_THRESHOLD_LC_GH;
+                sensor->asserted_event.lower_critical_go_high = 1;
+                ev_type = ASSERTION_EVENT;
+                sensor->state = SENSOR_STATE_LOW_CRIT;
+            }
+            else if(((char)sensor->last_sensor_reading) >= (((char)sdr->lower_non_critical_threshold) + (1+((char)sdr->positive_going_threshold_hysteresis_value)))){
+                if(sensor->asserted_event.upper_non_critical_go_high){
+                    ev = IPMI_THRESHOLD_LNC_GH;
+                    sensor->asserted_event.lower_non_critical_go_high = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+                sensor->state = SENSOR_STATE_NORMAL;
+            }
+
+            if(sensor->old_state != sensor->state && ((char)sensor->last_sensor_reading) >= ((char)sdr->lower_non_critical_threshold)){
+                ev = IPMI_THRESHOLD_LNC_GL;
+                sensor->asserted_event.lower_non_critical_go_low = 1;
+                ev_type = ASSERTION_EVENT;
+            }
+            else if(((char)sensor->last_sensor_reading) <= (((char)sdr->lower_non_critical_threshold) - (1+((char)sdr->negative_going_threshold_hysteresis_value)))){
+                if(sensor->asserted_event.lower_non_critical_go_low){
+                    ev = IPMI_THRESHOLD_LNC_GL;
+                    sensor->asserted_event.lower_non_critical_go_low = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+            }
+        }
+        else{
+            if(sensor->last_sensor_reading <= sdr->lower_critical_threshold){
+                ev = IPMI_THRESHOLD_LC_GH;
+                sensor->asserted_event.lower_critical_go_high = 1;
+                ev_type = ASSERTION_EVENT;
+                sensor->state = SENSOR_STATE_LOW_CRIT;
+            }
+            else if(sensor->last_sensor_reading >= (sdr->lower_non_critical_threshold + (1+sdr->positive_going_threshold_hysteresis_value))){
+                if(sensor->asserted_event.upper_non_critical_go_high){
+                    ev = IPMI_THRESHOLD_LNC_GH;
+                    sensor->asserted_event.lower_non_critical_go_high = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+                sensor->state = SENSOR_STATE_NORMAL;
+            }
+
+            if(sensor->old_state != sensor->state && sensor->last_sensor_reading >= sdr->lower_non_critical_threshold){
+                ev = IPMI_THRESHOLD_LNC_GL;
+                sensor->asserted_event.lower_non_critical_go_low = 1;
+                ev_type = ASSERTION_EVENT;
+            }
+            else if(sensor->last_sensor_reading <= (sdr->lower_non_critical_threshold - (1+sdr->negative_going_threshold_hysteresis_value))){
+                if(sensor->asserted_event.lower_non_critical_go_low){
+                    ev = IPMI_THRESHOLD_LNC_GL;
+                    sensor->asserted_event.lower_non_critical_go_low = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+            }
+        }
+        break;
+
+    case SENSOR_STATE_LOW_CRIT:
+        if(sensor->signed_flag){
+            if(((char)sensor->last_sensor_reading) <= ((char)sdr->lower_non_recoverable_threshold)){
+                ev = IPMI_THRESHOLD_LNR_GH;
+                sensor->asserted_event.lower_non_recorverable_go_high = 1;
+                ev_type = ASSERTION_EVENT;
+                sensor->state = SENSOR_STATE_LOW_NON_REC;
+            }
+            else if(((char)sensor->last_sensor_reading) >= (((char)sdr->lower_critical_threshold) + (1+((char)sdr->positive_going_threshold_hysteresis_value)))){
+                if(sensor->asserted_event.upper_critical_go_high){
+                    ev = IPMI_THRESHOLD_LC_GH;
+                    sensor->asserted_event.lower_critical_go_high = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+                sensor->state = SENSOR_STATE_LOW;
+            }
+
+            if(sensor->old_state != sensor->state && ((char)sensor->last_sensor_reading) >= ((char)sdr->lower_critical_threshold)){
+                ev = IPMI_THRESHOLD_LC_GL;
+                sensor->asserted_event.lower_critical_go_low = 1;
+                ev_type = ASSERTION_EVENT;
+            }
+            else if(((char)sensor->last_sensor_reading) <= (((char)sdr->lower_critical_threshold) - (1+((char)sdr->negative_going_threshold_hysteresis_value)))){
+                if(sensor->asserted_event.lower_critical_go_low){
+                    ev = IPMI_THRESHOLD_LC_GL;
+                    sensor->asserted_event.lower_critical_go_low = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+            }
+        }
+        else{
+            if(sensor->last_sensor_reading <= sdr->lower_non_recoverable_threshold){
+                ev = IPMI_THRESHOLD_LNR_GH;
+                sensor->asserted_event.lower_non_recorverable_go_high = 1;
+                ev_type = ASSERTION_EVENT;
+                sensor->state = SENSOR_STATE_LOW_NON_REC;
+            }
+            else if(sensor->last_sensor_reading >= (sdr->lower_critical_threshold + (1+sdr->positive_going_threshold_hysteresis_value))){
+                if(sensor->asserted_event.upper_critical_go_high){
+                    ev = IPMI_THRESHOLD_LC_GH;
+                    sensor->asserted_event.lower_critical_go_high = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+                sensor->state = SENSOR_STATE_LOW;
+            }
+
+            if(sensor->old_state != sensor->state && sensor->last_sensor_reading >= sdr->lower_critical_threshold){
+                ev = IPMI_THRESHOLD_LC_GL;
+                sensor->asserted_event.lower_critical_go_low = 1;
+                ev_type = ASSERTION_EVENT;
+            }
+            else if(sensor->last_sensor_reading <= (sdr->lower_critical_threshold - (1+sdr->negative_going_threshold_hysteresis_value))){
+                if(sensor->asserted_event.lower_critical_go_low){
+                    ev = IPMI_THRESHOLD_LC_GL;
+                    sensor->asserted_event.lower_critical_go_low = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+            }
+        }
+        break;
+
+    case SENSOR_STATE_LOW_NON_REC:
+        if(sensor->signed_flag){
+            if(((char)sensor->last_sensor_reading) >= (((char)sdr->lower_non_recoverable_threshold) + (1+((char)sdr->positive_going_threshold_hysteresis_value)))){
+                if(sensor->asserted_event.upper_non_recoverable_go_high){
+                    ev = IPMI_THRESHOLD_LNR_GH;
+                    sensor->asserted_event.lower_non_recorverable_go_high = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+                sensor->state = SENSOR_STATE_LOW_CRIT;
+            }
+
+            if(sensor->old_state != sensor->state && ((char)sensor->last_sensor_reading) >= ((char)sdr->lower_non_recoverable_threshold)){
+                ev = IPMI_THRESHOLD_LNR_GL;
+                sensor->asserted_event.lower_non_recoverable_go_low = 1;
+                ev_type = ASSERTION_EVENT;
+            }
+            else if(((char)sensor->last_sensor_reading) <= (((char)sdr->lower_critical_threshold) - (1+((char)sdr->negative_going_threshold_hysteresis_value)))){
+                if(sensor->asserted_event.lower_non_recoverable_go_low){
+                    ev = IPMI_THRESHOLD_LNR_GL;
+                    sensor->asserted_event.lower_non_recoverable_go_low = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+            }
+        }
+        else{
+            if(sensor->last_sensor_reading >= (sdr->lower_non_recoverable_threshold + (1+sdr->positive_going_threshold_hysteresis_value))){
+                if(sensor->asserted_event.upper_non_recoverable_go_high){
+                    ev = IPMI_THRESHOLD_LNR_GH;
+                    sensor->asserted_event.lower_non_recorverable_go_high = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+                sensor->state = SENSOR_STATE_LOW_CRIT;
+            }
+
+            if(sensor->old_state != sensor->state && sensor->last_sensor_reading >= sdr->lower_non_recoverable_threshold){
+                ev = IPMI_THRESHOLD_LNR_GL;
+                sensor->asserted_event.lower_non_recoverable_go_low = 1;
+                ev_type = ASSERTION_EVENT;
+            }
+            else if(sensor->last_sensor_reading <= (sdr->lower_critical_threshold - (1+sdr->negative_going_threshold_hysteresis_value))){
+                if(sensor->asserted_event.lower_non_recoverable_go_low){
+                    ev = IPMI_THRESHOLD_LNR_GL;
+                    sensor->asserted_event.lower_non_recoverable_go_low = 0;
+                    ev_type = DEASSERTION_EVENT;
+                }
+            }
+        }
+        break;
+    }
+
+    debug(3, "SENSOR","Sensor change : %02X > %02X",sensor->old_state, sensor->state);
+
+    sensor->old_state = sensor->state;
+
+    if ((ev != 0xFF) &&
+        (event_config->receiver_slave_addr != 0xFF) &&
+		(event_config->evt_enabled)
+	) {
+        //ipmi_event_send(sensor, ev_type, &ev, 1);
+
+    }
+}

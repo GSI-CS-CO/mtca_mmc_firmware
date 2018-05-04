@@ -51,6 +51,10 @@ void ipmi_event_handler( IPMI_PKT *pkt );
 void ipmi_event_init( void );
 void pef_postpone_timer_expired( unsigned char *arg );
 
+void get_event_config(EVENT_CONFIG* event_config){
+	event_config = &evt_config;
+}
+
 /*======================================================================*/
 /*======================================================================*/
 /*			NETFN_EVENT commands
@@ -78,8 +82,7 @@ void ipmi_event_init( void )
 void
 ipmi_process_event_req( IPMI_PKT *pkt )
 {
-	//dputstr( DBG_IPMI | DBG_INOUT, "ipmi_process_event_req: ingress\n" );
-	debug(2,"IPMI_EVENT","REQ CMD 0x%02X", pkt->req->command);
+	debug(3,"IPMI_EVENT","REQ CMD 0x%02X", pkt->req->command);
 
 	switch( pkt->req->command )
 	{
@@ -157,8 +160,6 @@ ipmi_process_event_req( IPMI_PKT *pkt )
 		case IPMI_SE_CMD_GET_SENSOR_THRESHOLD:
 			debug(2,"IPMI_EVENT","GET_SENSOR_THRESHOLD");
 			ipmi_get_sensor_threshold(pkt);
-			//pkt->resp->completion_code = CC_NOT_SUPPORTED;
-			//pkt->hdr.resp_data_len = 0;
 			break;
 		case IPMI_SE_CMD_SET_SENSOR_EVENT_ENABLE:
 			debug(2,"IPMI_EVENT","SET_SENSOR_EVENT_ENABLE-NS");
@@ -705,24 +706,25 @@ int event_data_compare( uchar test_value, PEF_MASK *pef_mask )
 void
 ipmi_set_event_receiver( IPMI_PKT *pkt )
 {
-	SET_EVENT_RECEIVER_CMD_REQ	*req = ( SET_EVENT_RECEIVER_CMD_REQ * )pkt->req;
+	SET_EVENT_RECEIVER_CMD_REQ	*req  = ( SET_EVENT_RECEIVER_CMD_REQ  * )pkt->req;
 	SET_EVENT_RECEIVER_CMD_RESP	*resp = ( SET_EVENT_RECEIVER_CMD_RESP * )pkt->resp;
-
-	dputstr( DBG_IPMI | DBG_INOUT, "ipmi_set_event_receiver: ingress\n" );
 
 	if( evt_config.receiver_slave_addr != 0xff ) {
 		evt_config.receiver_slave_addr = req->evt_receiver_slave_addr;
 		evt_config.receiver_lun = req->evt_receiver_lun;
 		evt_config.evt_enabled = 1;
+
+		info("IPMI_EVENT","SET EVENT RECEIVER");
+		info("IPMI_EVENT","\tslave addr > 0x%02X",evt_config.receiver_slave_addr);
+		info("IPMI_EVENT","\tevent > ENABLED");
 	} else {
 		evt_config.evt_enabled = 0;
+		info("IPMI_EVENT","\tevent > DISABLED");
 	}
 	
 	resp->completion_code = CC_NORMAL;
 
 	module_rearm_events();
-	
-	dputstr( DBG_IPMI | DBG_INOUT, "ipmi_set_event_receiver: egress\n" );
 }
 
 /* This global command is used to retrieve the present setting for the Event
@@ -734,7 +736,7 @@ ipmi_get_event_receiver( IPMI_PKT *pkt )
 {
 	GET_EVENT_RECEIVER_CMD_RESP	*resp = ( GET_EVENT_RECEIVER_CMD_RESP * )pkt->resp;
 	
-	dputstr( DBG_IPMI | DBG_INOUT, "ipmi_get_event_receiver: ingress\n" );
+	debug(3,"EVENT","ipmi_get_event_receiver: ingress");
 
 	/* Event Receiver Slave Address. 0FFh indicates Event Message 
 	   Generation has been disabled. Otherwise
@@ -747,10 +749,9 @@ ipmi_get_event_receiver( IPMI_PKT *pkt )
 	}
 
 	resp->evt_receiver_lun = evt_config.receiver_lun;		/* [1:0] - Event Receiver LUN */
-
 	resp->completion_code = CC_NORMAL;
 	
-	dputstr( DBG_IPMI | DBG_INOUT, "ipmi_get_event_receiver: egress\n" );
+	debug(3,"EVENT","ipmi_get_event_receiver: egress" );
 }
 
 

@@ -116,11 +116,13 @@ support and contact details.
 /*
  * These are the LEDS on AMC_FTRN board, controlled by LPC
  */
-#define LED_ERROR	P1_17		// #MMC_LED_FAIL
-#define LED_OK		P1_16		// #MMC_LED_OK		should represent the CONF_DONE pin
+#define LED_ERROR	P1_16		// #MMC_LED_FAIL
+#define LED_OK		P1_17		// #MMC_LED_OK		should represent the CONF_DONE pin
 #define LED_WHITE	P1_18		// #MMC_LED_FWRELOAD, led blinks regarding the MAC_FTRN position
 
 #define LED_USER 	P1_20		// #MMC_ULED_1		on the board, not visible on the front panel
+#define PMB1_BUTTON	P0_20		// #PMB1           push button
+
 
 #define STANDALONE	P1_19		// input, if 1 board is outside crate, if 0 board is in the crate
 

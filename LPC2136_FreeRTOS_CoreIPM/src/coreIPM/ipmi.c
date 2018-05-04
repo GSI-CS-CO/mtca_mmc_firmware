@@ -58,8 +58,6 @@ support and contact details.
 
 #define FRU_LOCATOR_TABLE_SIZE	16
 
-//#define DUMP_RESPONSE
-
 
 typedef struct watchdog_info {
 	unsigned timer_handle;
@@ -191,30 +189,25 @@ void
 ipmi_process_pkt( IPMI_WS * ws ) 
 {
 	IPMI_PKT	*pkt;
-	uchar		cksum, completion_code = CC_NORMAL;
+	uchar		checksum, completion_code = CC_NORMAL;
 	uchar		responder_slave_addr, requester_slave_addr;
 	
 	IPMI_IPMB_HDR *ipmb_hdr = ( IPMI_IPMB_HDR * )&( ws->pkt_in );
 
-	//dputstr( DBG_IPMI | DBG_INOUT, "ipmi_process_pkt: ingress\n" );
-	//printf( "ipmi_process_pkt: ingress\n" );
-
 	pkt = &ws->pkt;
 	pkt->hdr.ws = (char *)ws;
 
-
-	#ifdef DUMP_RESPONSE
+	if(get_report_level() > 6){
 		int i;
-		printf( "\n IPMB REQUEST: [" );
+		printf( "\n\tIPMB REQUEST: [ " );
 		for( i = 0; i < ws->len_in; i++ ) {
 			printf("%02X ",((unsigned char *)ws->pkt_in)[i]);
 		}
 		printf( "]\n" );
-	#endif
+	}
 
 	switch( ws->incoming_protocol ) {
 		case IPMI_CH_PROTOCOL_IPMB:	/* used for IPMB, serial/modem Basic Mode, and LAN */
-			//dputstr( DBG_IPMI | DBG_LVL1, "ipmi_process_pkt: IPMB protocol\n" );
 			debug( 3, "PROC_PKT"," CH_PROTOCOL_IPMB" );
 
 			if( ws->flags & WS_FL_GENERAL_CALL ) { 
@@ -232,7 +225,7 @@ ipmi_process_pkt( IPMI_WS * ws )
 
 				/* ignore if not our address */
 				if( module_get_i2c_address( I2C_ADDRESS_LOCAL ) != ws->pkt_in[0] ) {
-					debug( 2, "PROC_PKT", "Not our address" );
+					debug( 2, "PROC_PKT", "Not our address 0x02%", ws->pkt_in[0]);
 					ws_free( ws );
 					return;
 				}
@@ -246,16 +239,16 @@ ipmi_process_pkt( IPMI_WS * ws )
 			if( !( ipmb_hdr->netfn % 2 ) ) {
 				/* an even netfn indicates a request */
 				responder_slave_addr = module_get_i2c_address( I2C_ADDRESS_LOCAL );
-				cksum = -( *( ws->pkt_in ) + responder_slave_addr );;
-				if( ws->pkt_in[1] != cksum ) { /* header checksum is the second byte */
+				checksum = -( *( ws->pkt_in ) + responder_slave_addr );
+				if( ws->pkt_in[1] != checksum ) { /* header checksum is the second byte */
 					debug( 2, "PROC_PKT", "Faulty header checksum" );
 					completion_code = CC_INVALID_DATA_IN_REQ;
 					break;
 				}
 
-				cksum = ipmi_calculate_checksum( &(((IPMI_IPMB_REQUEST *)(ws->pkt_in))->requester_slave_addr), 
+				checksum = ipmi_calculate_checksum( &(((IPMI_IPMB_REQUEST *)(ws->pkt_in))->requester_slave_addr),
 						ws->len_in - 3 );
-				if( ws->pkt_in[ws->len_in - 1] != cksum ) { /* data checksum is the last byte */
+				if( ws->pkt_in[ws->len_in - 1] != checksum ) { /* data checksum is the last byte */
 					debug(2, "PROC_PKT", "Faulty data checksum" );
 
 					completion_code = CC_INVALID_DATA_IN_REQ;
@@ -336,8 +329,6 @@ ipmi_process_pkt( IPMI_WS * ws )
 		/* an odd netfn indicates a response */
 		ipmi_process_response( pkt, completion_code );
 
-		dputstr( DBG_IPMI | DBG_INOUT, "ipmi_process_pkt: egress\n" );
-
 		return;
 	}
 	
@@ -357,8 +348,6 @@ ipmi_process_pkt( IPMI_WS * ws )
 				IPMI_IPMB_RESPONSE *ipmb_resp = ( IPMI_IPMB_RESPONSE * )&( ws->pkt_out );
 				IPMI_IPMB_REQUEST *ipmb_req = ( IPMI_IPMB_REQUEST * )&( ws->pkt_in );
 				
-
-//				ipmb_resp->requester_slave_addr = ipmb_req->requester_slave_addr;
 				requester_slave_addr = ipmb_req->requester_slave_addr;
 				ipmb_resp->netfn = ipmb_req->netfn + 1;
 				ipmb_resp->requester_lun = ipmb_req->requester_lun;
@@ -370,26 +359,25 @@ ipmi_process_pkt( IPMI_WS * ws )
 				/* The location of data_checksum field is bogus.
 				 * It's used as a placeholder to indicate that a checksum follows the data field.
 				 * The location of the data_checksum depends on the size of the data preceeding it.*/
-				ipmb_resp->data_checksum = 
-					ipmi_calculate_checksum( &ipmb_resp->responder_slave_addr, 
-						pkt->hdr.resp_data_len + 4 ); 
+
+				checksum = ipmi_calculate_checksum( &ipmb_resp->responder_slave_addr,
+								pkt->hdr.resp_data_len + 4 );
 				ws->len_out = sizeof(IPMI_IPMB_RESPONSE) 
 					- IPMB_RESP_MAX_DATA_LEN  +  pkt->hdr.resp_data_len;
 				/* Assign the checksum to it's proper location */
-				*( (uchar *)ipmb_resp + ws->len_out - 1 ) = ipmb_resp->data_checksum;
+				*( (uchar *)ipmb_resp + ws->len_out - 1 ) = checksum;
 
-				#ifdef DUMP_RESPONSE
-						int i;
-						printf( "IPMB RESPONSE: [ " );
-						for( i = 0; i < ws->len_out; i++ ) {
-							printf("%02X ",((unsigned char *)ipmb_resp)[i]);
-						}
-						printf("]\n");
-
-                      //info("IPMB RESPONSE",(const char *)ipmb_resp);
-				#endif
+				/* REPORT RESPONSE packet*/
+				if(get_report_level() > 6){
+					int i;
+					printf( "\n\tIPMB RESPONSE: [ " );
+					for( i = 0; i < ws->len_out; i++ ) {
+						printf("%02X ",((unsigned char *)ipmb_resp)[i]);
+					}
+					printf("]\n");
 				}
-				break;
+			}
+			break;
 			
 			case IPMI_CH_PROTOCOL_TMODE: {		/* Terminal Mode */
 				IPMI_TERMINAL_MODE_RESPONSE *tm_resp = ( IPMI_TERMINAL_MODE_RESPONSE * )&( ws->pkt_out );
@@ -411,10 +399,9 @@ ipmi_process_pkt( IPMI_WS * ws )
 			case IPMI_CH_PROTOCOL_BT10:		/* BT System Interface Format, IPMI v1.0 */
 			case IPMI_CH_PROTOCOL_BT15:		/* BT System Interface Format, IPMI v1.5 */
 				/* we should not be here  */
-				//dputstr( DBG_IPMI | DBG_ERR, "ipmi_process_pkt: unsupported protocol\n" );
 				debug( 3, "PROC_PKT","unsupported protocol");
-				break;
-		}
+			break;
+			}
 		ws_set_state( ws, WS_ACTIVE_MASTER_WRITE );
 	}
 
@@ -448,12 +435,8 @@ ipmi_process_response( IPMI_PKT *pkt, unsigned char completion_code )
 {
 	IPMI_WS *req_ws = 0, *target_ws = 0, *resp_ws = 0;
 	uchar seq = 0;
-	uchar requester_slave_addr;
-#ifdef DUMP_RESPONSE
+	uchar requester_slave_addr, data_checksum;
 	int i;
-#endif
-
-	dputstr( DBG_IPMI | DBG_INOUT, "ipmi_process_response: ingress\n" );
 
 	resp_ws = ( IPMI_WS * )pkt->hdr.ws;
 	if( resp_ws->incoming_protocol == IPMI_CH_PROTOCOL_IPMB ) {
@@ -472,14 +455,15 @@ ipmi_process_response( IPMI_PKT *pkt, unsigned char completion_code )
 	if( !target_ws ) {
 		//call module response handler here
 		module_process_response( req_ws, seq, completion_code );
-#ifdef DUMP_RESPONSE
-		putstr( "\n[" );
-		for( i = 0; i < resp_ws->len_in; i++ ) {
-			puthex( resp_ws->pkt_in[i] );
-			putchar( ' ' );
+
+		if(get_report_level() > 6){
+			printf( "\n\tIPMB PROCESS RESP: [ " );
+			for( i = 0; i < resp_ws->len_in; i++ ) {
+				printf("%02X ",((unsigned char *)resp_ws->pkt_in)[i]);
+			}
+			printf("]\n");
 		}
-		putstr( "]\n" );
-#endif
+
 		ws_free( resp_ws );
 		return;
 	} else {
@@ -521,13 +505,12 @@ ipmi_process_response( IPMI_PKT *pkt, unsigned char completion_code )
 			/* The location of data_checksum field is bogus.
 			 * It's used as a placeholder to indicate that a checksum follows the data field.
 			 * The location of the data_checksum depends on the size of the data preceeding it.*/
-			ipmb_resp->data_checksum = 
-				ipmi_calculate_checksum( &ipmb_resp->responder_slave_addr, 
+			data_checksum =	ipmi_calculate_checksum( &ipmb_resp->responder_slave_addr,
 					pkt->hdr.resp_data_len + 4 ); 
 			req_ws->len_out = sizeof(IPMI_IPMB_RESPONSE) 
 				- IPMB_RESP_MAX_DATA_LEN  +  pkt->hdr.resp_data_len;
 			/* Assign the checksum to it's proper location */
-			*( (uchar *)ipmb_resp + req_ws->len_out) = ipmb_resp->data_checksum; 
+			*( (uchar *)ipmb_resp + req_ws->len_out) = data_checksum;
 			}			
 			break;
 		
@@ -1216,7 +1199,7 @@ ipmi_read_fru_data( IPMI_PKT *pkt )
 		req->fru_inventory_offset_lsb;
 	
 
-	debug(4,"FRU_READ","%d,0x%x,%d\n",req->fru_dev_id,fru_inventory_offset,req->count_to_read);
+	debug(4,"FRU_READ","ID:%d OFFS:0x%x CNT:%d\n",req->fru_dev_id,fru_inventory_offset,req->count_to_read);
 
 	/* if the fru information is cached we already have this info */
 	for( i = 0; i < FRU_INVENTORY_CACHE_ARRAY_SIZE; i++ ) {
@@ -1290,7 +1273,8 @@ fru_read_complete( void *ws, int status )
 	IPMI_WS *req_ws = ( (IPMI_WS *)( ws ) )->bridged_ws;
 	IPMI_WS *fru_ws = ( (IPMI_WS *)( ws ) );
 	IPMI_PKT *pkt = &req_ws->pkt;
-	uchar requester_slave_addr;
+	uchar requester_slave_addr, data_checksum;
+	debug(4,"FRU_READ","fru_read_complete");
 
 	//TODO copy data to cache
 
@@ -1298,9 +1282,12 @@ fru_read_complete( void *ws, int status )
 	req_ws->outgoing_protocol = req_ws->incoming_protocol;
 	req_ws->outgoing_medium = req_ws->incoming_medium;
 	pkt->hdr.resp_data_len = fru_ws->len_in; // TODO Check size
+	debug(4,"FRU_READ","resp_data_len %d", pkt->hdr.resp_data_len);
 	
 	switch( req_ws->outgoing_protocol ) {
 		case IPMI_CH_PROTOCOL_IPMB: {
+			debug(4,"FRU_READ","\tCH_PROTOCOL_IPMB");
+
 			IPMI_IPMB_RESPONSE *ipmb_resp = ( IPMI_IPMB_RESPONSE * )&( req_ws->pkt_out );
 			IPMI_IPMB_REQUEST *ipmb_req = ( IPMI_IPMB_REQUEST * )&( req_ws->pkt_in );
 			
@@ -1318,17 +1305,18 @@ fru_read_complete( void *ws, int status )
 			/* The location of data_checksum field is bogus.
 			 * It's used as a placeholder to indicate that a checksum follows the data field.
 			 * The location of the data_checksum depends on the size of the data preceeding it.*/
-			ipmb_resp->data_checksum = 
-				ipmi_calculate_checksum( &ipmb_resp->responder_slave_addr, 
-					pkt->hdr.resp_data_len + 4 ); 
+			data_checksum = ipmi_calculate_checksum( &ipmb_resp->responder_slave_addr,
+					        pkt->hdr.resp_data_len + 4 );
 			req_ws->len_out = sizeof(IPMI_IPMB_RESPONSE) 
 				- IPMB_RESP_MAX_DATA_LEN  +  pkt->hdr.resp_data_len;
 			/* Assign the checksum to it's proper location */
-			*( (uchar *)ipmb_resp + req_ws->len_out) = ipmb_resp->data_checksum; 
+			*( (uchar *)ipmb_resp + req_ws->len_out) = data_checksum;
 			}			
 			break;
 		
 		case IPMI_CH_PROTOCOL_TMODE: {		/* Terminal Mode */
+			debug(4,"FRU_READ","\tCH_PROTOCOL_TMODE");
+
 			IPMI_TERMINAL_MODE_RESPONSE *tm_resp = ( IPMI_TERMINAL_MODE_RESPONSE * )&( req_ws->pkt_out );
 			IPMI_TERMINAL_MODE_REQUEST *tm_req = ( IPMI_TERMINAL_MODE_REQUEST * )&( req_ws->pkt_in );
 			memcpy(tm_resp->data, fru_ws->pkt_in, IPMB_RESP_MAX_DATA_LEN ); //TODO check size
@@ -1350,7 +1338,7 @@ fru_read_complete( void *ws, int status )
 		case IPMI_CH_PROTOCOL_BT10:		/* BT System Interface Format, IPMI v1.0 */
 		case IPMI_CH_PROTOCOL_BT15:		/* BT System Interface Format, IPMI v1.5 */
 			/* Unsupported protocol */
-			dputstr( DBG_IPMI | DBG_ERR, "ipmi_process_pkt: unsupported protocol\n" );
+			debug(4,"FRU_READ","UNSUP PROTOCOL 0x%X",req_ws->outgoing_protocol);
 			break;
 	}
 	
@@ -1591,7 +1579,7 @@ void
 ipmi_send_message_cmd_complete( void *target_ws, int status )
 {
 	IPMI_WS *req_ws;
-	uchar requester_slave_addr;
+	uchar requester_slave_addr, data_checksum;
 
 	dputstr( DBG_IPMI | DBG_INOUT, "ipmi_send_message_cmd_complete: ingress\n" );
 
@@ -1628,11 +1616,11 @@ ipmi_send_message_cmd_complete( void *target_ws, int status )
 					/* The location of data_checksum field is bogus.
 					 * It's used as a placeholder to indicate that a checksum follows the data field.
 					 * The location of the data_checksum depends on the size of the data preceeding it.*/
-					ipmb_resp->data_checksum = 
+					data_checksum =
 						ipmi_calculate_checksum( &ipmb_resp->responder_slave_addr, 4 ); 
 					req_ws->len_out = sizeof(IPMI_IPMB_RESPONSE) - IPMB_RESP_MAX_DATA_LEN;
 					/* Assign the checksum to it's proper location */
-					*( (uchar *)ipmb_resp + req_ws->len_out) = ipmb_resp->data_checksum;
+					*( (uchar *)ipmb_resp + req_ws->len_out) = data_checksum;
 					}			
 					break;
 				

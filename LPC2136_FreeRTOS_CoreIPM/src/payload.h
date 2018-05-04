@@ -32,6 +32,11 @@
 #define AMC_FTRN_OUTSIDE			0x77
 
 
+#define LED_TEST_OFF         0x0
+#define LED_TEST_ON_LED_OFF  0x1
+#define LED_TEST_ON_LED_ON   0x2
+
+
 enum amc_payload_state{
 	PAYLOAD_IDLE,
 	PAYLOAD_WAIT_FOR_12V,
@@ -51,6 +56,8 @@ enum amc_payload_state{
 struct module_status{
 	enum amc_payload_state payload_state;
 	unsigned char payload_activate;
+	unsigned char force_active;
+	unsigned char led_test_mode;
 
 	unsigned char host_type;
 	unsigned char ipmi_amc_host;

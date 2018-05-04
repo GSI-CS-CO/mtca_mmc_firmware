@@ -5,7 +5,7 @@
  * Generated linker script file for LPC2138
  * Created from linkscript.ldt by FMCreateLinkLibraries
  * Using Freemarker v2.3.23
- * LPCXpresso v8.2.2 [Build 650] [2016-09-09]  on Feb 26, 2018 6:32:17 PM
+ * LPCXpresso v8.2.2 [Build 650] [2016-09-09]  on May 4, 2018 6:02:26 PM
  */
 
 INCLUDE "LPC2136_FreeRTOS_CoreIPM_Release_library.ld"

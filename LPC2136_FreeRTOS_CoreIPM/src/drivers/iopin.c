@@ -27,6 +27,7 @@ support and contact details.
 #include "iopin.h"
 #include "mmcio.h"
 #include "../project_defs.h"
+#include "../payload.h"
 
 
 void
@@ -65,10 +66,26 @@ iopin_clear( unsigned long long bit )
  */
 void iopin_led(unsigned long long bit, int active, int on) {
 
-	if (on == active) {
-		iopin_set(bit);
-	} else {
-		iopin_clear(bit);
+	if (g_module_state.led_test_mode == LED_TEST_OFF){
+		if (on == active) {
+			iopin_set(bit);
+		} else {
+			iopin_clear(bit);
+		}
+	}else{
+		if (g_module_state.led_test_mode == LED_TEST_ON_LED_ON){
+			if (active) {
+				iopin_set(bit);
+			} else {
+				iopin_clear(bit);
+			}
+		}else{ // LED_TEST_ON_LED_OFF
+			if (active) {
+				iopin_clear(bit);
+			} else {
+				iopin_set(bit);
+			}
+		}
 	}
 }
 

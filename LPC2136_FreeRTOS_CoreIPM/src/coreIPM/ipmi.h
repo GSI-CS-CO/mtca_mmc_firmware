@@ -25,7 +25,13 @@ support and contact details.
 */
 #ifndef IPMI_H
 #define IPMI_H
+
+#include "../user_fru.h"
+#include "../fw_info.h"
+
 #define uchar unsigned char
+
+#define PADDING_SIZE(x) (7-(sizeof(x)%8))
 
 /*======================================================================*/
 /*			General Power State				*/
@@ -3285,38 +3291,47 @@ typedef struct board_area_format_hdr {
 	uchar	mfg_time[3];		/*  Mfg. Date / Time
 					    Number of minutes from 0:00 hrs 1/1/96.
 					    LSbyte first (little endian) */
-} BOARD_AREA_FORMAT_HDR;
 
-/* The rest is variable length data
-	uchar	manuf_type:4,		- Board Manufacturer type/length byte
-		manuf_len;
-	uchar	manuf[P];		- Board Manufacturer bytes
-	uchar	prod_name_type:4,	- Board Product Name type/length byte
-		prod_name_len;
-	uchar	prod_name[Q];		- Board Product Name bytes
-	uchar	ser_num_type:4		- Serial Number type/length byte
-		ser_num_len;
-	uchar	ser_num[N]		- Board Serial Number bytes
-	uchar	part_num_type:4		- Board Part Number type/length byte
-		part_num_len;
-	uchar	part_num[M];		- Board Part Number bytes
-	uchar	fru_file_id_type:4,	- FRU File ID type/length byte
-		fru_file_id_len;
-	uchar	fru_file_id[R];		- FRU File ID bytes 
+/* The rest is variable length data*/
+	uchar	manuf_len:6,
+	        manuf_type:2;		//- Board Manufacturer type/length byte
+	uchar	manuf[sizeof(BOARD_MANUFACTURER)-1];			//- Board Manufacturer bytes
 
+	uchar	prod_name_len:6,	//- Board Product Name type/length byte
+			prod_name_type:2;
+	uchar	prod_name[sizeof(BOARD_NAME)-1];		//- Board Product Name bytes
+
+	uchar	ser_num_len:6,		//- Serial Number type/length byte
+			ser_num_type:2;
+	uchar	ser_num[sizeof(BOARD_SN)-1];			//- Board Serial Number bytes
+
+	uchar	part_num_len:6,	//- Board Part Number type/length byte
+			part_num_type:2;
+	uchar	part_num[sizeof(BOARD_PN)-1];		//- Board Part Number bytes
+
+	uchar	fru_file_id_len:6,	//- FRU File ID type/length byte
+			fru_file_id_type:2;
+	uchar	fru_file_id[sizeof(FRU_FILE_ID)-1];	//- FRU File ID bytes
+/*
 The FRU File version field is a pre-defined field
 provided as a manufacturing aid for verifying the file that was used
 during manufacture or field update to load the FRU information. The
 content is manufacturer-specific. This field is also provided in the
 Product Info area. Either or both fields may be �null�.
-
-	uchar	custom_data[xx];	- Additional custom Mfg. Info fields. 
-					  Defined by manufacturing. Each
-					  field must be preceded by a type/length byte
-		C1h; 			- (type/length byte encoded to indicate no more info fields).
-	uchar	unused[Y];		- 00h - any remaining unused space
-	uchar	checksum;		- Board Area Checksum (zero checksum)
 */
+/*
+	uchar	custom_data_len:6,	//- FRU File ID type/length byte
+			custom_data_type:2;
+	uchar	custom_data;
+*/
+	uchar   end_of_rec; // C1h; 			- (type/length byte encoded to indicate no more info fields).
+} BOARD_AREA_FORMAT_HDR;
+
+typedef struct {
+	BOARD_AREA_FORMAT_HDR	data;
+	uchar	padding[PADDING_SIZE(BOARD_AREA_FORMAT_HDR)];
+	uchar	checksum;		//- Board Area Checksum (zero checksum)
+}t_board_area_format_hdr;
 
 typedef struct product_area_format_hdr {
 #ifdef BF_MS_FIRST
@@ -3331,44 +3346,67 @@ typedef struct product_area_format_hdr {
 	uchar	len;			/* Product Area Length (in multiples
 					   of 8 bytes) */
 	uchar	lang_code;		/* Language Code */
+
+	uchar	manuf_name_len:6,	//- Manufacturer Name type/length byte
+			manuf_name_type:2;
+	uchar	manuf_name[sizeof(PRODUCT_MANUFACTURER)-1];		//- Manufacturer Name bytes
+
+	uchar	prod_name_len:6,	//- Product Name type/length byte
+			prod_name_type:2;
+	uchar	prod_name[sizeof(PRODUCT_NAME)-1];		//- Product Name bytes
+
+	uchar	prod_part_model_num_len:6,	//- Product Part/Model Number type/length byte
+			prod_part_model_num_type:2;
+	uchar	prod_part_model_num[sizeof(PRODUCT_PN)-1];	//- Product Part/Model Number bytes
+
+	uchar	prod_version_len:6,	//- Product Version type/length byte
+			prod_version_type:2;
+	uchar	prod_version[sizeof(PRODUCT_VERSION)-1];	//- Product Version bytes
+
+	uchar	prod_serial_num_len:6,	//- Product Serial Number type/length byte
+			prod_serial_num_type:2;
+	uchar	prod_serial_num[sizeof(PRODUCT_SN)-1];	//- Product Serial Number bytes
+
+	uchar	asset_tag_len:6,	//- Asset Tag type/length byte
+			asset_tag_type:2;
+	uchar	asset_tag[sizeof(PRODUCT_TAG)-1];		//- Asset Tag
+
+	uchar	fru_file_id_len:6,	//- FRU File ID type/length byte
+			fru_file_id_type:2;
+	uchar	fru_file_id[sizeof(FRU_FILE_ID)-1];		//- FRU File ID bytes.
+
+	uchar	custom_data_0_len:6,	//- Customer-info-0 type/length byte
+			custom_data_0_type:2;
+	uchar	custom_data_0[sizeof(MMC_FW_INFO_0)-1];
+
+	uchar	custom_data_1_len:6,	//- Customer-info-1 type/length byte
+			custom_data_1_type:2;
+	uchar	custom_data_1[sizeof(MMC_FW_INFO_1)-1];
+
+	uchar	custom_data_2_len:6,	//- Customer-info-2 type/length byte
+			custom_data_2_type:2;
+	uchar	custom_data_2[sizeof(MMC_FW_INFO_2)-1];
+
+	uchar	custom_data_3_len:6,	//- Customer-info-3 type/length byte
+			custom_data_3_type:2;
+	uchar	custom_data_3[sizeof(MMC_FW_INFO_3)-1];
+
+	uchar	custom_data_4_len:6,	//- Customer-info-4 type/length byte
+			custom_data_4_type:2;
+	uchar	custom_data_4[sizeof(MMC_FW_INFO_4)-1];
+
+	uchar   end_of_rec; // C1h; 			- (type/length byte encoded to indicate no more info fields).
+
 } PRODUCT_AREA_FORMAT_HDR;
 
-/* The rest is variable length data
-	uchar	manuf_name_type:4,	- Manufacturer Name type/length byte
-		manuf_name-len;	
-	uchar	manuf_name[N];		- Manufacturer Name bytes
-	uchar	prod_name_type:4,	- Product Name type/length byte
-	uchar	prod_name[M];		- Product Name bytes
-	uchar	prod_part_model_num_type:4,	- Product Part/Model Number type/length byte
-		prod_part_model_num_len;
-	uchar	prod_part_model[O];	- Product Part/Model Number bytes
-	uchar	prod_version_type:4,	- Product Version type/length byte
-		prod_version_len;
-	uchar	prod_version[R];	- Product Version bytes
-	uchar	prod_serial_num_type:4,	- Product Serial Number type/length byte
-		prod_serial_num_len;
-	uchar	prod_serial_num[P];	- Product Serial Number bytes
-	uchar	asset_tag_type:4,	- Asset Tag type/length byte
-		asset_tag_len;
-	uchar	asset_tag[Q];		- Asset Tag
-	uchar	fru_file_id_type:4,	- FRU File ID type/length byte
-		fru_file_id_len;
-	uchar	fru_file_id[R];		- FRU File ID bytes. 
 
-The FRU File version field is a pre-defined field
-provided as a manufacturing aid for verifying the file that was used
-during manufacture or field update to load the FRU information. The
-content is manufacturer-specific. This field is also provided in the
-Board Info area. Either or both fields may be �null�.
+typedef struct {
+	PRODUCT_AREA_FORMAT_HDR	data;
+	uchar	padding[PADDING_SIZE(PRODUCT_AREA_FORMAT_HDR)];
+	uchar	checksum;		//- Product Area Checksum (zero checksum)
+}t_product_area_format_hdr;
 
-	uchar	custom_data[xx];	- Custom product info area fields, 
-					  if any (must be preceded with
-					  type/length byte)
-		C1h;			- (type/length byte encoded to indicate
-	       				  no more info fields).
-	uchar	unused[Y];		- 00h - any remaining unused space
-	uchar	checksum;		- Product Info Area Checksum (zero checksum)
-*/	
+
 #define IPMI_STO_CMD_GET_FRU_INVENTORY_AREA_INFO 0x10	/* Get FRU Inventory Area Info */
 #define IPMI_STO_CMD_READ_FRU_DATA		0x11	/* Read FRU Data */
 #define IPMI_STO_CMD_WRITE_FRU_DATA		0x12	/* Write FRU Data */

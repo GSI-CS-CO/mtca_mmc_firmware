@@ -29,9 +29,12 @@
 #include "util/report.h"
 
 #include "drivers/lm73.h"
+#include "user_fru.h"
+#include "fw_info.h"
 
 #include <FreeRTOS.h>
 #include <task.h>
+#include <string.h>
 
 /*
  * This file contains everything that needs to customized for MMC
@@ -58,16 +61,17 @@ extern FRU_CACHE fru_inventory_cache[];
 
 struct fru_data {
 	FRU_COMMON_HEADER hdr;
-	unsigned char internal[72];
-	unsigned char chassis[32];
-	unsigned char board[64];
-	unsigned char product[80];
+	//unsigned char internal[72];
+	//unsigned char chassis[32];
+	t_board_area_format_hdr board;
+	t_product_area_format_hdr product;
 	AMC_P2P_CONN_RECORD p2p_rec;
 	AMC_CHANNEL_DESCRIPTOR amc_channel_0;
 	AMC_LINK_DESCR amc_link_pcie;
 	MODULE_CURRENT_REQUIREMENTS_RECORD mcr;
 	MULTIRECORD_AREA_HEADER last_record;
 } fru_data;
+
 
 
 void
@@ -88,11 +92,113 @@ mmc_specific_fru_init( void )
 	fru_data.hdr.format_version = 0x1;
 	fru_data.hdr.int_use_offset = 0;	// not used currently
 	fru_data.hdr.chassis_info_offset = 0;
-	fru_data.hdr.board_offset = 0;
-	fru_data.hdr.product_info_offset = 0;
+	fru_data.hdr.board_offset = ( ( char * )&( fru_data.board ) - ( char * )&( fru_data ) ) >> 3;
+	fru_data.hdr.product_info_offset = ( ( char * )&( fru_data.product ) - ( char * )&( fru_data ) ) >> 3;
 	fru_data.hdr.multirecord_offset = ( ( char * )&( fru_data.p2p_rec ) - ( char * )&( fru_data ) ) >> 3;
 	fru_data.hdr.pad = 0;
 	fru_data.hdr.checksum = ipmi_calculate_checksum( ( unsigned char * )&( fru_data.hdr ), sizeof( FRU_COMMON_HEADER ) - 1 );
+
+
+	// ====================================================================
+    // BOARD DATA AREA
+	fru_data.board.data.format_version 	= 0x1;
+	fru_data.board.data.lang_code		= 0;
+	fru_data.board.data.mfg_time[0]		= 0;
+	fru_data.board.data.mfg_time[1]		= 0;
+	fru_data.board.data.mfg_time[2]		= 0;
+	fru_data.board.data.len				= (sizeof(t_board_area_format_hdr)) >> 3;
+
+
+	strncpy((char*) &(fru_data.board.data.manuf), BOARD_MANUFACTURER, strlen(BOARD_MANUFACTURER));
+	fru_data.board.data.manuf_len        = (strlen(BOARD_MANUFACTURER) & 0x3F);
+	fru_data.board.data.manuf_type       = 0x03;
+
+	strncpy((char*) &(fru_data.board.data.prod_name), BOARD_NAME,strlen(BOARD_NAME));
+	fru_data.board.data.prod_name_len	= (strlen(BOARD_NAME) & 0x3F);
+	fru_data.board.data.prod_name_type   = 0x03;
+
+	strncpy((char*) &(fru_data.board.data.ser_num), BOARD_SN, strlen(BOARD_SN));
+	fru_data.board.data.ser_num_len		= (strlen(BOARD_SN) & 0x3F);
+	fru_data.board.data.ser_num_type   	= 0x03;
+
+	strncpy((char*) &(fru_data.board.data.part_num), BOARD_PN, strlen(BOARD_PN));
+	fru_data.board.data.part_num_len	= (strlen(BOARD_PN) & 0x3F);
+	fru_data.board.data.part_num_type   = 0x03;
+
+	strncpy((char*) &(fru_data.board.data.fru_file_id),FRU_FILE_ID , strlen(FRU_FILE_ID));
+	fru_data.board.data.fru_file_id_len  = (strlen(FRU_FILE_ID) & 0x3F);
+	fru_data.board.data.fru_file_id_type = 0x03;
+
+	//fru_data.board.data.custom_data_len	= 0;
+	//fru_data.board.data.custom_data_type= 0;
+
+	fru_data.board.data.end_of_rec		= 0xC1;
+	fru_data.board.checksum				= ipmi_calculate_checksum( ( unsigned char * )&( fru_data.board.data ), sizeof( t_board_area_format_hdr ) - 1 );
+
+
+	// ====================================================================
+	// PRODUCT DATA AREA
+	fru_data.product.data.format_version	= 0x1;
+	fru_data.product.data.lang_code			= 0;
+	fru_data.product.data.len				= (sizeof(t_product_area_format_hdr)) >> 3;
+
+
+	strncpy((char*) &(fru_data.product.data.manuf_name), PRODUCT_MANUFACTURER, strlen(PRODUCT_MANUFACTURER));
+	fru_data.product.data.manuf_name_len        = (strlen(PRODUCT_MANUFACTURER) & 0x3F);
+	fru_data.product.data.manuf_name_type       = 0x03;
+
+	strncpy((char*) &(fru_data.product.data.prod_name), PRODUCT_NAME,strlen(PRODUCT_NAME));
+	fru_data.product.data.prod_name_len	= (strlen(PRODUCT_NAME) & 0x3F);
+	fru_data.product.data.prod_name_type   = 0x03;
+
+	strncpy((char*) &(fru_data.product.data.prod_part_model_num), PRODUCT_PN, strlen(PRODUCT_PN));
+	fru_data.product.data.prod_part_model_num_len		= (strlen(PRODUCT_PN) & 0x3F);
+	fru_data.product.data.prod_part_model_num_type   	= 0x03;
+
+	strncpy((char*) &(fru_data.product.data.prod_version), PRODUCT_VERSION, strlen(PRODUCT_VERSION));
+	fru_data.product.data.prod_version_len		= (strlen(PRODUCT_VERSION) & 0x3F);
+	fru_data.product.data.prod_version_type   	= 0x03;
+
+	strncpy((char*) &(fru_data.product.data.prod_serial_num), PRODUCT_SN, strlen(PRODUCT_SN));
+	fru_data.product.data.prod_serial_num_len	= (strlen(PRODUCT_SN) & 0x3F);
+	fru_data.product.data.prod_serial_num_type   = 0x03;
+
+	strncpy((char*) &(fru_data.product.data.asset_tag), PRODUCT_TAG, strlen(PRODUCT_TAG));
+	fru_data.product.data.asset_tag_len		= 0; //(strlen(PRODUCT_TAG) & 0x3F);
+	fru_data.product.data.asset_tag_type   	= 0x00;
+
+	strncpy((char*) &(fru_data.product.data.fru_file_id),FRU_FILE_ID , strlen(FRU_FILE_ID));
+	fru_data.product.data.fru_file_id_len  = (strlen(FRU_FILE_ID) & 0x3F);
+	fru_data.product.data.fru_file_id_type = 0x03;
+
+/*	strncpy((char*) &(fru_data.product.data.custom_data_0),PRODUCT_CUSTOM_DATA_0 , strlen(PRODUCT_CUSTOM_DATA_0));
+	fru_data.product.data.custom_data_0_len  = (strlen(PRODUCT_CUSTOM_DATA_0) & 0x3F);
+	fru_data.product.data.custom_data_0_type = 0x03;
+*/
+
+	strncpy((char*) &(fru_data.product.data.custom_data_0),MMC_FW_INFO_0 , strlen(MMC_FW_INFO_0));
+	fru_data.product.data.custom_data_0_len  = (strlen(MMC_FW_INFO_0) & 0x3F);
+	fru_data.product.data.custom_data_0_type = 0x03;
+
+	strncpy((char*) &(fru_data.product.data.custom_data_1),MMC_FW_INFO_1 , strlen(MMC_FW_INFO_1));
+	fru_data.product.data.custom_data_1_len  = (strlen(MMC_FW_INFO_1) & 0x3F);
+	fru_data.product.data.custom_data_1_type = 0x03;
+
+	strncpy((char*) &(fru_data.product.data.custom_data_2),MMC_FW_INFO_2 , strlen(MMC_FW_INFO_2));
+	fru_data.product.data.custom_data_2_len  = (strlen(MMC_FW_INFO_2) & 0x3F);
+	fru_data.product.data.custom_data_2_type = 0x03;
+
+	strncpy((char*) &(fru_data.product.data.custom_data_3),MMC_FW_INFO_3 , strlen(MMC_FW_INFO_3));
+	fru_data.product.data.custom_data_3_len  = (strlen(MMC_FW_INFO_3) & 0x3F);
+	fru_data.product.data.custom_data_3_type = 0x03;
+
+	strncpy((char*) &(fru_data.product.data.custom_data_4),MMC_FW_INFO_4 , strlen(MMC_FW_INFO_4));
+	fru_data.product.data.custom_data_4_len  = (strlen(MMC_FW_INFO_4) & 0x3F);
+	fru_data.product.data.custom_data_4_type = 0x03;
+
+	fru_data.product.data.end_of_rec		= 0xC1;
+	fru_data.product.checksum				= ipmi_calculate_checksum( ( unsigned char * )&( fru_data.product.data ), sizeof( t_product_area_format_hdr ) - 1 );
+
 
 
 	/*
@@ -284,6 +390,7 @@ mmc_specific_sensor_init( void )
 	voltage_payload_12_sd.scan_function=sensor_read_12V;
 	voltage_payload_12_sd.unavailable=0;
 	voltage_payload_12_sd.sensor_scanning_enabled=1;
+	voltage_payload_12_sd.signed_flag=0;
 	sensor_add(&voltage_payload_12_sdr,&voltage_payload_12_sd);
 
 
@@ -316,6 +423,7 @@ mmc_specific_sensor_init( void )
 	voltage_mgmt_3v3_sd.scan_function=sensor_read_3V3;
 	voltage_mgmt_3v3_sd.unavailable=0;
 	voltage_mgmt_3v3_sd.sensor_scanning_enabled=1;
+	voltage_mgmt_3v3_sd.signed_flag=0;
 //	voltage_mgmt_3v3_sd.ignore_sensor=0;
 	sensor_add(&voltage_mgmt_3v3_sdr,&voltage_mgmt_3v3_sd);
 
@@ -349,6 +457,7 @@ mmc_specific_sensor_init( void )
 	temp1_sdr.upper_non_recoverable_threshold = 185; // 80°C
 
 	temp1_sd.scan_function=sensor_read_t1;
+	temp1_sd.signed_flag = 1;
 	sensor_add(&temp1_sdr,&temp1_sd);
 
 	generic_sensor_init(&temp2_sdr,"Temp Outlet",ST_TEMPERATURE);
@@ -372,6 +481,7 @@ mmc_specific_sensor_init( void )
 	temp2_sdr.upper_non_recoverable_threshold = 185; // 80°C
 
 	temp2_sd.scan_function=sensor_read_t2;
+	temp2_sd.signed_flag = 1;
 	sensor_add(&temp2_sdr,&temp2_sd);
 
 	/** Discrete sensors:

@@ -127,6 +127,7 @@ NOTE: You might get an error after this part of flash-utility output, but this d
 To load new firmware to MMC with OpenOCD:
 
     $ make flash-mmc-openocd
+
     ...auto erase enabled
     auto unlock enabled
     wrote 131072 bytes from file ./LPC2136_FreeRTOS_CoreIPM/Debug/LPC2136_FreeRTOS_CoreIPM.bin in 19.077818s (6.709 KiB/s)
@@ -134,6 +135,9 @@ To load new firmware to MMC with OpenOCD:
 
 
 NOTE: This is still experimental. Flashing ends with error but MMC is flashed and works.
+When ARM-USB-OCD is connected to PC for the first time then repeat command "make flash-mmc-openocd" twice. 
+
+
 Test was done using Olimex ARM-USB-OCD and Olimex ARM-JTAG-20-10 adapter
 
 https://www.olimex.com/Products/ARM/JTAG/ARM-USB-OCD/
@@ -157,7 +161,14 @@ Open device in terminal, example with minicom:
 
 Console outputs various information about MMC state and actions and currently supports this inputs:
 
-- typing numbers 0-9 enables/disables debug prints, 0-debug prints disabled, 1-9 - debug print level enabled
-- i or I - print out firmware build info (similar as eb-info)
+- h     : list commands
+- 0-9   : enables/disables debug prints, 0-debug prints disabled, 1-9 - debug print level enabled
+- i, I  : print out firmware build info (similar as eb-info)
+- p     : disable PCIe port (asserts PCIe reset)
+- P     : enable PCIe port (if FTRN used outside crate, without MCH, on AMC>PCIe adapter)
+- l     : enable MMC LED test, turn all MMC LEDs OFF
+- L     : enable MMC LED test, turn all MMC LEDs ON
+- o     : disable MMC LED test (use this after done with L or l)
+- s     : display Freertos tasks and task statistics
 
 
