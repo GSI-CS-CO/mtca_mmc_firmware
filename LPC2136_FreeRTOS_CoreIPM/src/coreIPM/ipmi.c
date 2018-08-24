@@ -1254,6 +1254,7 @@ ipmi_read_fru_data( IPMI_PKT *pkt )
 	if( !found ) {
 		resp->completion_code = CC_INVALID_DATA_IN_REQ;
 		pkt->hdr.resp_data_len = 0;
+		ws_free( ws );
 		return;
 	}
 	
@@ -1471,6 +1472,7 @@ ipmi_send_message_cmd( IPMI_PKT *pkt )
 	 || ( req->channel_number == ( ( IPMI_WS * )( pkt->hdr.ws ) )->incoming_channel ) ) {
 		resp->completion_code = CC_DEST_UNAVAILABLE;
 		pkt->hdr.resp_data_len = 0;
+		ws_free( target_ws );
 		return;
 	}
 

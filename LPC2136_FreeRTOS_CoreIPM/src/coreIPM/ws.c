@@ -30,6 +30,7 @@ support and contact details.
 #include "debug.h"
 //#include "serial.h"
 #include "ws.h"
+#include "../critical.h"
 
 extern unsigned long lbolt;
 
@@ -45,11 +46,12 @@ ws_init( void )
 {
 	unsigned i;
 	
+	CRITICAL_START
 	for ( i = 0; i < WS_ARRAY_SIZE; i++ )
 	{
 		ws_array[i].ws_state = WS_FREE;
 	}
-
+	CRITICAL_END
 }
 
 /* get a free ws elem */
@@ -59,9 +61,8 @@ ws_alloc( void )
 	IPMI_WS *ws = 0;
 	IPMI_WS *ptr = ws_array;
 	unsigned i;
-	//unsigned int interrupt_mask = CURRENT_INTERRUPT_MASK;	
 
-	//DISABLE_INTERRUPTS;
+	CRITICAL_START
 	for ( i = 0; i < WS_ARRAY_SIZE; i++ )
 	{
 		ptr = &ws_array[i];
@@ -71,7 +72,7 @@ ws_alloc( void )
 			break;
 		}
 	}
-	//ENABLE_INTERRUPTS( interrupt_mask );
+	CRITICAL_END
 	return ws;
 }
 
@@ -82,12 +83,14 @@ ws_free( IPMI_WS *ws )
 	int len, i;
 	char *ptr = (char *)ws;
 
+	CRITICAL_START
 	len = sizeof( IPMI_WS );
 	for( i = 0 ; i < len ; i++ ) {
 		*ptr++ = 0;
 	}	
 	ws->incoming_protocol = IPMI_CH_PROTOCOL_NONE;
 	ws->ws_state = WS_FREE;
+	CRITICAL_END
 }
 
 IPMI_WS *
@@ -96,9 +99,8 @@ ws_get_elem( unsigned state )
 	IPMI_WS *ws = 0;
 	IPMI_WS *ptr = ws_array;
 	unsigned i;
-	//unsigned int interrupt_mask = CURRENT_INTERRUPT_MASK;	
 
-	//DISABLE_INTERRUPTS;	
+	CRITICAL_START
 	for ( i = 0; i < WS_ARRAY_SIZE; i++ )
 	{
 		ptr = &ws_array[i];
@@ -114,8 +116,7 @@ ws_get_elem( unsigned state )
 	
 	if( ws )
 		ws->timestamp = lbolt;
-
-	//ENABLE_INTERRUPTS( interrupt_mask );
+	CRITICAL_END
 	return ws;
 }
 
@@ -125,9 +126,8 @@ ws_get_elem_seq( uchar seq, IPMI_WS *ws_ignore )
 	IPMI_WS *ws = 0;
 	IPMI_WS *ptr = ws_array;
 	unsigned i;
-	//unsigned int interrupt_mask = CURRENT_INTERRUPT_MASK;
 
-	//DISABLE_INTERRUPTS;		
+	CRITICAL_START
 	for ( i = 0; i < WS_ARRAY_SIZE; i++ )
 	{
 		ptr = &ws_array[i];
@@ -138,8 +138,16 @@ ws_get_elem_seq( uchar seq, IPMI_WS *ws_ignore )
 			break;
 		}
 	}
-	//ENABLE_INTERRUPTS( interrupt_mask );
+	CRITICAL_END
 	return ws;
+}
+
+void
+ws_unclog() {
+        int i;
+        for (i = 0; i < WS_ARRAY_SIZE; i++) {
+                ws_free(&ws_array[i]);
+        }
 }
 
 void

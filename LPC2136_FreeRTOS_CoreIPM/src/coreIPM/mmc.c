@@ -51,7 +51,7 @@ unsigned char mmc_state;
 unsigned char mmc_hot_swap_state;
 unsigned char switch_poll_timer_handle;
 unsigned char module_monitor_voltage_handle;
-unsigned send_event_retry_timer_handle;
+unsigned send_event_retry_timer_handle = 0;
 unsigned char pending_cmd_seq;
 
 #define MMC_STATE_RESET		0

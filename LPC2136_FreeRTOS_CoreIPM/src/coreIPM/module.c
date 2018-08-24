@@ -31,6 +31,7 @@
 #include "../util/report.h"
 
 MGMT_CTRL_DEV_LOCATOR_RECORD g_SDR_MCDLS;
+SENSOR_DATA g_SD_MCDLS;
 
 /*==============================================================
  * MMC ADDRESSING
@@ -506,9 +507,11 @@ module_sensor_init( void )
 	unsigned char dev_slave_addr =  module_get_i2c_address( I2C_ADDRESS_LOCAL );
 
 	//Init Management Controller Device Locator Sensor
-	sdr_init_mcdls("CSL-MMC-WR");
-
-	sdr_add(&g_SDR_MCDLS,sizeof(g_SDR_MCDLS));
+	sdr_init_mcdls("WRTR");
+	g_SD_MCDLS.unavailable=0;
+        g_SD_MCDLS.sensor_scanning_enabled=1;
+        g_SD_MCDLS.scan_function = 0;
+	sensor_add(&g_SDR_MCDLS,&g_SD_MCDLS);
 
 
 	sdr_init_hotswap();

@@ -107,6 +107,9 @@
 								<option id="com.crt.advproject.gas.arch.1389109460" name="Architecture" superClass="com.crt.advproject.gas.arch"/>
 								<option id="gnu.both.asm.option.flags.crt.1221134949" name="Assembler flags" superClass="gnu.both.asm.option.flags.crt" value="-c -x assembler-with-cpp -D__REDLIB__ -DNDEBUG -D__CODE_RED" valueType="string"/>
 								<option id="com.crt.advproject.gas.hdrlib.1551325240" name="Library headers" superClass="com.crt.advproject.gas.hdrlib" value="com.crt.advproject.gas.hdrlib.codered" valueType="enumerated"/>
+								<option id="gnu.both.asm.option.include.paths.2137653146" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="../FreeRTOS_LPC2136/inc"/>
+								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.2098074459" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 								<inputType id="com.crt.advproject.assembler.input.2053998592" name="Additional Assembly Source Files" superClass="com.crt.advproject.assembler.input"/>
 							</tool>

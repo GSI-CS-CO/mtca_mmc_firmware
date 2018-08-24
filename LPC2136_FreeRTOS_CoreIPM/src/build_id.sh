@@ -96,16 +96,14 @@ echo "#define MMC_FW_INFO_1  \"Branch: $git_branch\"" >> $fw_info_header
 
 git_log="$(git log --decorate=no -n 1)"
 
-#read -r log_line_hash log_line_comment <<< "$git_log"
 commit_hash=`echo "$git_log" | grep commit`
-author_name=`echo "$git_log" | grep Author`
-date_value=`echo "$git_log" | grep Date`
+date_value=`echo "Build Date: $build_date"`
+author_name=`echo "By: $git_user <$git_email>"`
 
 
 echo "#define MMC_FW_INFO_2  \"$commit_hash\"" >> $fw_info_header
-echo "#define MMC_FW_INFO_3  \"$author_name\"" >> $fw_info_header
-echo "#define MMC_FW_INFO_4  \"$date_value\"" >> $fw_info_header
-
+echo "#define MMC_FW_INFO_3  \"$date_value\"" >> $fw_info_header
+echo "#define MMC_FW_INFO_4  \"$author_name\"" >> $fw_info_header
 
 echo "" >> $fw_info_header
 echo "#endif" >> $fw_info_header

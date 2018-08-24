@@ -27,6 +27,7 @@ support and contact details.
 #include "../drivers/arch.h"
 #include "timer.h"
 #include "error.h"
+#include "../critical.h"
 
 #define CQ_ARRAY_SIZE 32
 
@@ -93,6 +94,38 @@ timer_initialize( void )
 }
 
 /*==============================================================
+ * timer_add_reserved()
+ *==============================================================*/
+void timer_add_reserved(
+        void *handle,
+        unsigned long ticks,
+        void(*func)(unsigned char *),
+        unsigned char *arg)
+{
+        CRITICAL_START
+        if (cq_array[31].state == CQE_FREE) {
+                cq_array[31].state = CQE_ACTIVE;
+                cq_array[31].func = func;
+                cq_array[31].arg = arg;
+                cq_array[31].tick = ticks + lbolt;
+                cq_array[31].handle = handle;
+        }
+        CRITICAL_END
+}
+
+/*==============================================================
+ * timer_remove_reserved()
+ *==============================================================*/
+void
+timer_remove_reserved()
+{
+        CRITICAL_START
+        cq_array[31].state = CQE_FREE;
+        CRITICAL_END
+}
+
+
+/*==============================================================
  * timer_add_callout_queue()
  *==============================================================*/
 int
@@ -126,10 +159,9 @@ timer_remove_callout_queue(
 {
 	CQE *ptr;
 	unsigned i;
-	unsigned int interrupt_mask = CURRENT_INTERRUPT_MASK;	
 
-	DISABLE_INTERRUPTS;
-	for ( i = 0; i < CQ_ARRAY_SIZE; i++ )
+	CRITICAL_START
+	for ( i = 0; i < CQ_ARRAY_SIZE - 1; i++ )
 	{
 		ptr = &cq_array[i];
 		if( ( ptr->state == CQE_ACTIVE ) && ( ptr->handle == handle ) ) {
@@ -137,7 +169,7 @@ timer_remove_callout_queue(
 			break;
 		}
 	}
-	ENABLE_INTERRUPTS( interrupt_mask );
+	CRITICAL_END
 }
 
 /*==============================================================
@@ -152,9 +184,8 @@ timer_reset_callout_queue(
 {
 	CQE *cqe;
 	unsigned i;
-	unsigned int interrupt_mask = CURRENT_INTERRUPT_MASK;	
 
-	DISABLE_INTERRUPTS;	
+	CRITICAL_START
 	for ( i = 0; i < CQ_ARRAY_SIZE; i++ )
 	{
 		cqe = &cq_array[i];
@@ -163,7 +194,7 @@ timer_reset_callout_queue(
 			break;
 		}
 	}
-	ENABLE_INTERRUPTS( interrupt_mask );
+	CRITICAL_END
 }
 
 
@@ -203,11 +234,13 @@ timer_process_callout_queue( void )
 {
 	CQE *cqe;
 	
+	CRITICAL_START
 	if( ( cqe = cq_get_expired_elem( lbolt ) ) ) {
 		cq_set_cqe_state( cqe, CQE_PENDING );
 		(*cqe->func)( cqe->arg );
 		cq_free( cqe );
 	}
+	CRITICAL_END
 }
 
 /*======================================================================*
@@ -240,10 +273,9 @@ cq_alloc( void )
 	CQE *cqe = 0;
 	CQE *ptr = cq_array;
 	unsigned i;
-	unsigned int interrupt_mask = CURRENT_INTERRUPT_MASK;	
 
-	DISABLE_INTERRUPTS;
-	for ( i = 0; i < CQ_ARRAY_SIZE; i++ )
+	CRITICAL_START
+	for ( i = 0; i < CQ_ARRAY_SIZE - 1; i++ )
 	{
 		ptr = &cq_array[i];
 		if( ptr->state == CQE_FREE ) {
@@ -253,7 +285,7 @@ cq_alloc( void )
 			break;
 		}
 	}
-	ENABLE_INTERRUPTS( interrupt_mask );
+	CRITICAL_END
 	return cqe;
 }
 
@@ -276,9 +308,7 @@ cq_get_expired_elem( unsigned long current_tick )
 	CQE *cqe = 0;
 	CQE *ptr = cq_array;
 	unsigned i;
-	unsigned int interrupt_mask = CURRENT_INTERRUPT_MASK;	
 
-	DISABLE_INTERRUPTS;
 	for ( i = 0; i < CQ_ARRAY_SIZE; i++ )
 	{
 		ptr = &cq_array[i];
@@ -288,7 +318,6 @@ cq_get_expired_elem( unsigned long current_tick )
 			break;
 		}
 	}
-	ENABLE_INTERRUPTS( interrupt_mask );
 	return cqe;
 }
 

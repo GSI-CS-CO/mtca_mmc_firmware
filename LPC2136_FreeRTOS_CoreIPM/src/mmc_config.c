@@ -69,7 +69,6 @@ struct fru_data {
 	AMC_CHANNEL_DESCRIPTOR amc_channel_0;
 	AMC_LINK_DESCR amc_link_pcie;
 	MODULE_CURRENT_REQUIREMENTS_RECORD mcr;
-	MULTIRECORD_AREA_HEADER last_record;
 } fru_data;
 
 
@@ -257,7 +256,7 @@ mmc_specific_fru_init( void )
 	 * Current requirements record
 	 */
 	fru_data.mcr.rec_type_id = 0xc0;
-	fru_data.mcr.end_list = 0;	/* End of List. Set to one for the last record */
+	fru_data.mcr.end_list = 1;	/* End of List. Set to one for the last record */
 	fru_data.mcr.rec_format = 0x2;	/* Record format version (= 2h for this definition) */
 	fru_data.mcr.rec_length = 0x6;	/* Record Length */
 	fru_data.mcr.manuf_id_lsb = 0x5A;
@@ -272,21 +271,6 @@ mmc_specific_fru_init( void )
 	fru_data.mcr.hdr_cksum = ipmi_calculate_checksum( ( unsigned char * )&( fru_data.mcr.rec_type_id ), 4 );
 
 
-	/*
-	 * Last record, only used to end the multirecord FRU area...
-	 */
-	fru_data.last_record.record_type_id = 0xC0;	/* For all records a value of C0h (OEM) shall be used. */
-	fru_data.last_record.eol = 1;		/* End of list. Set to one for the last record */
-	fru_data.last_record.reserved = 0;
-	fru_data.last_record.version = 2;	/* record format version (2h for this definition) */
-	fru_data.last_record.record_len = 5;	/* Record Length. */
-	fru_data.last_record.manuf_id[0] = 0x5A;
-	fru_data.last_record.manuf_id[1] = 0x31;
-	fru_data.last_record.manuf_id[2] = 0x00;
-	fru_data.last_record.picmg_rec_id = 0;	/* PICMG Record ID. */
-	fru_data.last_record.rec_fmt_ver = 0;	/* For this specification, the value 0h shall be used. */
-	fru_data.last_record.record_cksum = ipmi_calculate_checksum( ( unsigned char * )&( fru_data.last_record.manuf_id[0] ), 5 );
-	fru_data.last_record.header_cksum = ipmi_calculate_checksum( ( unsigned char * )&( fru_data.last_record.record_type_id ), 4 );
 }
 
 

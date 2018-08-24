@@ -37,6 +37,12 @@ extern int timer_add_callout_queue(
 	void(*func)( unsigned char *), 
 	unsigned char *arg );
 extern void timer_remove_callout_queue( void *handle );
+extern void timer_add_reserved(
+        void *,
+        unsigned long,
+        void(*)(unsigned char *),
+        unsigned char *);
+extern void   timer_remove_reserved(void);
 unsigned long timer_get_expiration_time( void *handle );
 void timer_reset_callout_queue( void *handle, unsigned long ticks );
 

@@ -4,9 +4,9 @@
 // Shorter version of FW info to be read by MCH/ipmitool
 #define MMC_FW_INFO_0  "github.com/GSI-CS-CO/mtca_mmc_firmware"
 #define MMC_FW_INFO_1  "Branch: master"
-#define MMC_FW_INFO_2  "commit 0e0d33453e755c4c9227bd94aa11e049ad12128d"
-#define MMC_FW_INFO_3  "Author: Dusan Slavinec <dusan.slavinec@cosylab.com>"
-#define MMC_FW_INFO_4  "Date:   Wed Feb 28 10:59:11 2018 +0100"
+#define MMC_FW_INFO_2  "commit 781a5269c632bbdf9cb69bc4c2fbd9e163ffaa82"
+#define MMC_FW_INFO_3  "Build Date: Fri Aug 24 16:33:15 CEST 2018"
+#define MMC_FW_INFO_4  "By: Dusan Slavinec <dusan.slavinec@cosylab.com>"
 
 #endif
 

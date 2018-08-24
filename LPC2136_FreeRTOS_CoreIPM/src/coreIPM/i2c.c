@@ -95,6 +95,9 @@ taken
 #include "i2c.h"
 #include "gpio.h"
 #include "module.h"
+#include "../critical.h"
+
+int inI2C0 = 0;
 
 #define MAX_DELIVERY_ATTEMPTS 1
 
@@ -291,7 +294,9 @@ void I2C_ISR_0( void )
 	unsigned int i2c_stat = 0;
 	
 	i2c_stat = I2C0STAT;
+	inI2C0 = 1;
 	i2c_proc_stat( i2c_stat, 0 );
+	inI2C0 = 0;
 	
 	VICVectAddr = 0xFF;	/* - update priority hardware -
 				 * the value written here is irrelevant */
@@ -366,7 +371,7 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 	unsigned start_timer = 1;
 	
 	/* remove the state transition timer from the callout queue */
-	timer_remove_callout_queue( (void *)&(context->state_transition_timer) );
+	timer_remove_reserved();
 	
 	switch( i2stat ) {
 		/* Master transmitter/receiver mode common */
@@ -377,16 +382,17 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 			 * context->ws points to a send/receive request
 			 */
 			
-			if( ( !context->ws ) || ( context->state != I2STAT_START_MASTER ) || 
+			if( ( !context->ws ) || ( context->ws->ws_state == WS_FREE ) ||
+					( context->state != I2STAT_START_MASTER ) || 
 					( ( context->op_type != OP_MODE_MASTER_XMIT ) &&
 			 		( context->op_type != OP_MODE_MASTER_RCV ) ) ) 
 			{
 				/* error condition */
-				if( context->ws ) {
+				if( context->ws && context->ws->xport_completion_function ) {
 					(*context->ws->xport_completion_function)( (void *)context->ws, 
 							I2ERR_STATE_TRANSITION );
-					context->ws = 0;
 				}
+				context->ws = 0;
 				context->state = I2STAT_NADDR_SLAVE_MODE;
 				context->op_type = OP_MODE_SLAVE;
 				start_timer = 0;
@@ -413,11 +419,11 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 			
 		case I2STAT_REP_START_SENT:
 			/* not supported - we should not be here */
-			if( context->ws ) {
+			if( context->ws && context->ws->xport_completion_function ) {
 				(*context->ws->xport_completion_function)( (void *)context->ws, 
 						I2ERR_STATE_TRANSITION );
-				context->ws = 0;
 			}
+			context->ws = 0;
 			context->state = I2STAT_NADDR_SLAVE_MODE;
 			start_timer = 0;
 			context->op_type = OP_MODE_SLAVE;
@@ -438,10 +444,10 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 			 * The ws will be retried later.
 			 */
 			
-			if( context->ws ) {
+			if( context->ws && context->ws->xport_completion_function ) {
 				(*context->ws->xport_completion_function)( context->ws, I2ERR_ARBITRATION_LOST );
-				context->ws = 0;
 			}
+			context->ws = 0;
 			/* We don't set the start bit so I2C-bus will be released; 
 			 * the I2C block will enter a slave mode. */
 			
@@ -461,15 +467,15 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 			 * context->ws still points to an outgoing ws
 			 */
 			
-			if( (!context->ws ) || 
+			if( (!context->ws ) || ( context->ws->ws_state == WS_FREE ) ||
 			    ( ( context->state != I2STAT_START_SENT ) && 
 				  ( context->state != I2STAT_REP_START_SENT ) ) || 
 			    ( context->op_type != OP_MODE_MASTER_XMIT ) ) {
-				if( context->ws ) {
+				if( context->ws && context->ws->xport_completion_function ) {
 					(*context->ws->xport_completion_function)( context->ws, 
 							I2ERR_STATE_TRANSITION );
-					context->ws = 0;
 				}
+				context->ws = 0;
 				context->state = I2STAT_NADDR_SLAVE_MODE;
 				context->op_type = OP_MODE_SLAVE;
 				start_timer = 0;
@@ -493,10 +499,10 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 			 * on the bus so increment the channel error count. */
 			context->error_count++;
 			
-			if( context->ws ) {
+			if( context->ws && context->ws->xport_completion_function ) {
 				(*context->ws->xport_completion_function)( context->ws, I2ERR_SLARW_SENT_NOT_ACKED );
-				context->ws = 0;
 			}
+			context->ws = 0;
 			context->state = I2STAT_NADDR_SLAVE_MODE;
 			start_timer = 0;
 			context->op_type = OP_MODE_SLAVE;
@@ -510,16 +516,16 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 			 * then transmit a Stop condition, otherwise transmit
 			 * the next data byte. */
 			
-			if( (!context->ws ) || 
+			if( (!context->ws ) || ( context->ws->ws_state == WS_FREE ) ||
 				( ( context->state != I2STAT_MASTER_DATA_SENT_ACKED ) && 
 			          ( context->state != I2STAT_SLAW_SENT_ACKED ) ) || 
 			        ( context->op_type != OP_MODE_MASTER_XMIT ) ) 
 			{
-				if( context->ws ) {
+				if( context->ws && context->ws->xport_completion_function) {
 					(*context->ws->xport_completion_function)( context->ws, 
 							I2ERR_STATE_TRANSITION );
-					context->ws = 0;
 				}
+				context->ws = 0;
 				context->state = I2STAT_NADDR_SLAVE_MODE;
 				context->op_type = OP_MODE_SLAVE;
 				start_timer = 0;
@@ -529,7 +535,9 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 				context->state = I2STAT_MASTER_DATA_SENT_ACKED;
 				if (context->ws->len_sent >= context->ws->len_out ) {
 					/* we've sent all the data requested of us */
-					(*context->ws->xport_completion_function)( context->ws, I2ERR_NOERR );
+					if ( context->ws && context->ws->xport_completion_function) {
+						(*context->ws->xport_completion_function)( context->ws, I2ERR_NOERR );
+					}
 					if( context->ws->flags & WS_FL_REPEATED_START ) {
 						context->ws->flags = 0;
 						/* currently we only support a write followed by a read */
@@ -556,7 +564,7 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 			/* Data has been transmitted, NOT ACK received. 
 			 * Send a STOP condition & enter not adressed slave mode.
 			 */
-			if( context->ws ) {
+			if( context->ws && context->ws->xport_completion_function ) {
 				(*context->ws->xport_completion_function)( context->ws, I2ERR_NAK_RCVD );
 			}
 			context->state = I2STAT_NADDR_SLAVE_MODE;
@@ -576,15 +584,15 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 			 * to I2STAT_MASTER_DATA_RCVD_ACKED.
 			 */
 			
-			if( (!context->ws ) ||
+			if( (!context->ws ) || ( context->ws->ws_state == WS_FREE ) ||
 			    ( ( context->state != I2STAT_START_SENT ) && 
 			      ( context->state != I2STAT_REP_START_SENT ) ) || 
 			    ( context->op_type != OP_MODE_MASTER_RCV ) ) {
-				if( context->ws ) {
+				if( context->ws && context->ws->xport_completion_function ) {
 					(*context->ws->xport_completion_function)( context->ws, 
 							I2ERR_STATE_TRANSITION );
-					context->ws = 0;
 				}
+				context->ws = 0;
 				context->state = I2STAT_NADDR_SLAVE_MODE;
 				start_timer = 0;
 				context->op_type = OP_MODE_SLAVE;
@@ -598,16 +606,16 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 			break;
 
 		case I2STAT_MASTER_DATA_RCVD_ACKED: 
-			if( (!context->ws ) ||
+			if( (!context->ws ) || ( context->ws->ws_state == WS_FREE ) ||
 			    ( ( context->state != I2STAT_SLAR_SENT_ACKED ) &&
 			      ( context->state != I2STAT_MASTER_DATA_RCVD_ACKED ) ) ||
 			    ( context->op_type != OP_MODE_MASTER_RCV ) ) {
 
-				if( context->ws ) {
+				if( context->ws && context->ws->xport_completion_function) {
 					(*context->ws->xport_completion_function)( context->ws, 
 							I2ERR_STATE_TRANSITION );
-					context->ws = 0;
 				}
+				context->ws = 0;
 				context->state = I2STAT_NADDR_SLAVE_MODE;
 				start_timer = 0;
 				context->op_type = OP_MODE_SLAVE;
@@ -615,15 +623,19 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 				I2CCONCLR( I2C_CTRL_FL_SI, channel ); 
 			} else {
 				if( context->ws->len_in > WS_BUF_LEN ) {	
-					(*context->ws->xport_completion_function)( context->ws, 
+					if ( context->ws && context->ws->xport_completion_function ) {
+						(*context->ws->xport_completion_function)( context->ws, 
 							I2ERR_BUFFER_OVERFLOW );
+					}
 					context->ws = 0;
 					/* clear AA flag to send a no-ack, 
 					 * we should transition to MASTER_DATA_RCVD_NOT_ACKED*/
 					I2CCONCLR( I2C_CTRL_FL_AA, channel );
 				} else if( context->ws->len_in >= context->ws->len_rcv ) {
-					(*context->ws->xport_completion_function)( context->ws, 
+					if (context->ws && context->ws->xport_completion_function ) {
+						(*context->ws->xport_completion_function)( context->ws, 
 							I2ERR_NOERR );
+					}
 					context->ws = 0;
 					/* clear AA flag to send a no-ack, 
 					 * we should transition to MASTER_DATA_RCVD_NOT_ACKED*/
@@ -648,10 +660,10 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 			 * on the bus so increment the channel error count. */
 			context->error_count++;
 			
-			if( context->ws ) {
+			if( context->ws && context->ws->xport_completion_function ) {
 				(*context->ws->xport_completion_function)( context->ws, I2ERR_SLARW_SENT_NOT_ACKED );
-				context->ws = 0;
 			}
+			context->ws = 0;
 			context->state = I2STAT_NADDR_SLAVE_MODE;
 			context->op_type = OP_MODE_SLAVE;
 			start_timer = 0;
@@ -676,10 +688,10 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 			/* Own SLA+W has been rcvd; ACK has been returned. */
 			if( context->state == I2STAT_START_MASTER ) {
 				/* we tried sending a STA but failed, the upper layer should re-schedule */
-				if( context->ws ) {
+				if( context->ws && context->ws->xport_completion_function ) {
 					(*context->ws->xport_completion_function)( context->ws, I2ERR_ARBITRATION_LOST );
-					context->ws = 0;
 				}
+				context->ws = 0;
 				I2CCONCLR( I2C_CTRL_FL_STA, channel ); 
 			} else if( context->state != I2STAT_NADDR_SLAVE_MODE ) {
 				/* illegal state transition handling */
@@ -731,10 +743,10 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 				( context->state != I2STAT_ARB_LOST_SLAW_RCVD_ACKED ) ) {
 
 				/* illegal state transition handling */
-				if( context->ws ) {
+				if( context->ws && context->ws->xport_completion_function ) {
 					(*context->ws->xport_completion_function)( context->ws, I2ERR_STATE_TRANSITION );
-					context->ws = 0;
 				}
+				context->ws = 0;
 				context->op_type = OP_MODE_SLAVE;
 				/* Return NAK
 				 * we should transition to I2STAT_SLAVE_DATA_RCVD_NOT_ACKED */
@@ -743,10 +755,10 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 			}
 				
 			if( context->ws->len_in >= WS_BUF_LEN ) {
-				if( context->ws ) {
+				if( context->ws && context->ws->xport_completion_function ) {
 					(*context->ws->xport_completion_function)( context->ws, I2ERR_BUFFER_OVERFLOW );
-					context->ws = 0;
 				}
+				context->ws = 0;
 
 				/* Return NAK
 				 * we should transition to I2STAT_SLAVE_DATA_RCVD_NOT_ACKED */
@@ -765,10 +777,10 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 
 		case I2STAT_ARB_LOST_SLAW_RCVD_ACKED:
 		case I2STAT_ARB_LOST_GENERAL_CALL_RCVD_ACKED:
-			if( context->ws ) {
+			if( context->ws && context->ws->xport_completion_function ) {
 				(*context->ws->xport_completion_function)( context->ws, I2ERR_ARBITRATION_LOST );
-				context->ws = 0;
 			}
+			context->ws = 0;
 			
 			/* set up data buffer */
 			if( !( context->ws = ws_alloc() ) ) {
@@ -803,10 +815,10 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 		case I2STAT_STOP_START_RCVD:
 			if( ( context->state == I2STAT_SLAVE_DATA_RCVD_ACKED ) ||
 			    ( context->state == I2STAT_GENERAL_CALL_DATA_RCVD_ACKED ) ) {
-				if( context->ws ) {
+				if( context->ws && context->ws->xport_completion_function ) {
 					(*context->ws->xport_completion_function)( context->ws, I2ERR_NOERR );
-					context->ws = 0;
 				}
+				context->ws = 0;
 			} 			
 			context->state = I2STAT_NADDR_SLAVE_MODE;
 			start_timer = 0;
@@ -837,10 +849,10 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 			break;
 			
 		case I2STAT_ARB_LOST_SLAR_RCVD_ACKED:
-			if( context->ws ) {
+			if( context->ws && context->ws->xport_completion_function ) {
 				(*context->ws->xport_completion_function)( context->ws, I2ERR_STATE_TRANSITION );
-				context->ws = 0;
 			}
+			context->ws = 0;
 			I2CCONCLR( I2C_CTRL_FL_SI | I2C_CTRL_FL_AA , channel );
 			break;
 
@@ -881,10 +893,10 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 
 		case I2STAT_NO_INFO:
 		case I2STAT_BUS_ERROR:
-			if( context->ws ) {
+			if( context->ws && context->ws->xport_completion_function ) {
 				(*context->ws->xport_completion_function)( context->ws, I2ERR_STATE_TRANSITION );
-				context->ws = 0;
 			}
+			context->ws = 0;
 			I2CCONSET( I2C_CTRL_FL_AA | I2C_CTRL_FL_STO, channel );
 			I2CCONCLR( I2C_CTRL_FL_SI | I2C_CTRL_FL_STA, channel );
 			break;
@@ -895,7 +907,7 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 	}
 
 	if( start_timer && i2c_enable_timeout ) {
-		timer_add_callout_queue( (void *)&context->state_transition_timer,
+		timer_add_reserved( (void *)&context->state_transition_timer,
 		       	10*HZ, i2c_timeout, ( unsigned char * )context ); /* 10 sec timeout */
 	}
 }
@@ -926,7 +938,7 @@ i2c_timeout( unsigned char *arg )
 	/* increment the channel error count. */
 	context->error_count++;
 	
-	if( context->ws ) {
+	if( context->ws && context->ws->xport_completion_function ) {
 		(*context->ws->xport_completion_function)( context->ws, I2ERR_TIMEOUT );
 		context->ws = 0;
 	}
@@ -1008,8 +1020,8 @@ i2c_master_read( IPMI_WS *ws )
 		/* we will wait until a START can be sent, need to start timeout
 		 * here so we can recover and try a different channel */
 		if( i2c_enable_timeout ) {
-			timer_add_callout_queue( (void *)&context->state_transition_timer,
-		       		10*HZ, i2c_timeout, 0 ); /* 10 sec timeout */
+			timer_add_reserved( (void *)&context->state_transition_timer,
+		       		10*HZ, i2c_timeout, (unsigned char *)context ); /* 10 sec timeout */
 		}
 	} else {
 		/* back to the queue */
@@ -1083,7 +1095,7 @@ i2c_master_write( IPMI_WS *ws )
 		/* we will wait until a START can be sent, need to start timeout
 		 * here so we can recover and try a different channel or abort */
 		if( i2c_enable_timeout ) {
-			timer_add_callout_queue( (void *)&context->state_transition_timer,
+			timer_add_reserved( (void *)&context->state_transition_timer,
 		       		10*HZ, i2c_timeout, ( unsigned char * )context ); /* 10 sec timeout */
 		}
 	} else {
