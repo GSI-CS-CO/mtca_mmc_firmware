@@ -13,7 +13,7 @@ https://www.nxp.com/products/processors-and-microcontrollers/arm-based-processor
 
 In order to use flashing features LPCXpresso needs to be activated.
 
-LPCXpresso also needs addidional 32-bit packages. For Ubuntu 13.10 or later (including Debian) run: 
+LPCXpresso also needs addidional 32-bit packages. For Ubuntu 13.10 or later (including Debian) run:
 
     sudo apt-get install libgtk2.0-0:i386 libxtst6:i386 libpangox-1.0-0:i386 \
          libpangoxft-1.0-0:i386 libidn11:i386 libglu1-mesa:i386 \
@@ -62,7 +62,7 @@ To clean the compilation files run:
 
 # Debugger initialization and test
 
-To load firmware to MMC use LPC-Link debugger. Before downloading firmware to MMC debugger needs to be initialized. 
+To load firmware to MMC use LPC-Link debugger. Before downloading firmware to MMC debugger needs to be initialized.
 First check that debugger is visible in the system:
 
     $ lsusb | grep LPC-Link
@@ -70,7 +70,7 @@ First check that debugger is visible in the system:
 
 To initialize debugger just run:
 
-    $ make lpclink-init 
+    $ make lpclink-init
     ...
     Starting download: [##################################################] finished!
     ...
@@ -82,7 +82,7 @@ To initialize debugger just run:
 Power cycle the target then check that new device (NXP Semiconductors, Code Red Technologies LPC-Link Probe v1.3 [0100]) is present on the USB bus:
 
     $ lsusb | grep NXP
-    Bus 001 Device 052: ID 1fc9:0009 NXP Semiconductors 
+    Bus 001 Device 052: ID 1fc9:0009 NXP Semiconductors
 
 
 To test LPC-Link run:
@@ -135,7 +135,7 @@ To load new firmware to MMC with OpenOCD:
 
 
 NOTE: This is still experimental. Flashing ends with error but MMC is flashed and works.
-When ARM-USB-OCD is connected to PC for the first time then repeat command "make flash-mmc-openocd" twice. 
+When ARM-USB-OCD is connected to PC for the first time then repeat command "make flash-mmc-openocd" twice.
 
 
 Test was done using Olimex ARM-USB-OCD and Olimex ARM-JTAG-20-10 adapter
@@ -147,7 +147,7 @@ https://www.olimex.com/Products/ARM/JTAG/ARM-JTAG-20-10/
 
 # MMC console
 
-To observe MMC activity there is console available. Connect to FTRN via USB cable to the MMC USB connector (the one on the opposite side of the SFP and HotSwap handle). 
+To observe MMC activity there is console available. Connect to FTRN via USB cable to the MMC USB connector (the one on the opposite side of the SFP and HotSwap handle).
 Device is visible on the USB bus as
 
     Bus xxx Device yyy: ID 0403:6015 Future Technology Devices International, Ltd Bridge(I2C/SPI/UART/FIFO)
@@ -171,4 +171,16 @@ Console outputs various information about MMC state and actions and currently su
 - o     : disable MMC LED test (use this after done with L or l)
 - s     : display Freertos tasks and task statistics
 
+# OpenOCD
 
+We recommend to use OpenOCD version 0.9.0.
+
+## OpenOCD and Olimex OpenOCD JTAG ARM-USB-OCD-H
+
+In case you face problems like this: "Error: The specified debug interface was not found (ft2232)", you should try to build OpenOCD by yourself:
+
+  1. Check out/get version 0.9.0
+  2. $ ./configure --enable-ftdi
+  3. $ make
+  4. $ (sudo) make install
+  5. (Optional, copy udev rules file) $ (sudo) cp ./contrib/99-openocd.rules /etc/udev/rules.d/
