@@ -352,8 +352,8 @@ typedef struct ipmi_pkt {
 	IPMI_CMD_RESP	*resp;
 } IPMI_PKT;
 
-//#define WS_ARRAY_SIZE	8
-#define WS_BUF_LEN 32
+#define WS_ARRAY_SIZE	4
+#define WS_BUF_LEN 128
 
 typedef struct list_hdr {
 	struct list_hdr *next;

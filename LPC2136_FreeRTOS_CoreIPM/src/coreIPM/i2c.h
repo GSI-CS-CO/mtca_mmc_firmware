@@ -167,25 +167,28 @@ Available addresses are therefore:
 /* Conrol bit manipulation macros */
 #define	I2CCONSET( flags, channel )	\
 {					\
-	if(channel == 0 )		\
+	if(channel == 0 ){		\
 		I2C0CONSET = flags;	\
-	else				\
+    log_i2c_status(0x01, flags);\
+ 	}else				\
 		I2C1CONSET = flags;	\
 }
 
 #define I2CCONCLR( flags, channel ) 	\
 {					\
-	if(channel == 0 )		\
+	if(channel == 0 ){		\
 		I2C0CONCLR = flags;	\
-	else				\
+    log_i2c_status(0x02, flags);\
+	}else				\
 		I2C1CONCLR = flags;	\
 }
 
 #define I2CDAT_WRITE( val, channel )	\
 {							\
-	if(channel == 0 )		\
+	if(channel == 0 ){		\
 		I2C0DAT = val;		\
-	else					\
+    log_i2c_status(0x04, val);\
+	}else					\
 		I2C1DAT = val;	  	\
 }
 #define I2CDAT_READ( channel )	(channel?I2C1DAT:I2C0DAT)

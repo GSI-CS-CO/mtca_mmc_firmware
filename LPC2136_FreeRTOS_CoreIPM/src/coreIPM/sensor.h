@@ -108,6 +108,5 @@ int  compact_sensor_add( COMPACT_SENSOR_RECORD *sdr,SENSOR_DATA *sensor_data );
 int  sensor_add( FULL_SENSOR_RECORD *sdr, SENSOR_DATA *sensor_data ); 
 void generic_sensor_init(FULL_SENSOR_RECORD* sr, char* sensor_name, uchar sensor_type);
 void sdr_add(void* sdr, uchar sdr_size);
-void check_sensor_event( SENSOR_DATA * sensor );
 
 int nof_sensors_added(void);

@@ -82,119 +82,120 @@ void ipmi_event_init( void )
 void
 ipmi_process_event_req( IPMI_PKT *pkt )
 {
-	debug(3,"IPMI_EVENT","REQ CMD 0x%02X", pkt->req->command);
+	debug(2,"IPM_EVT_REQ","REQ CMD 0x%02X", pkt->req->command);
+	//info("IPM_EVT_REQ","REQ CMD 0x%02X", pkt->req->command);
 
 	switch( pkt->req->command )
 	{
 		case IPMI_SE_CMD_GET_PEF_CAPABILITIES:
-			debug(2,"IPMI_EVENT","GET CAPS");
+			debug(2,"IPM_EVT_REQ","GET CAPS");
 			ipmi_get_pef_capabilities( pkt );
 			break;
 		case IPMI_SE_CMD_ARM_PEF_POSTPONE_TIMER:
-			debug(2,"IPMI_EVENT","ARM POSTPONE TIMER");
+			debug(2,"IPM_EVT_REQ","ARM POSTPONE TIMER");
 			ipmi_arm_pef_postpone_timer( pkt );
 			break;
 		case IPMI_SE_CMD_SET_PEF_CONFIG_PARAMS:
-			debug(2,"IPMI_EVENT","SET PEF CONFIG");
+			debug(2,"IPM_EVT_REQ","SET PEF CONFIG");
 			ipmi_set_pef_config_params( pkt );
 			break;
 		case IPMI_SE_CMD_GET_PEF_CONFIG_PARAMS:
-			debug(2,"IPMI_EVENT","GET PEF CONFIG");
+			debug(2,"IPM_EVT_REQ","GET PEF CONFIG");
 			ipmi_get_pef_config_params( pkt );
 			break;
 		case IPMI_SE_CMD_SET_LAST_PROCESSED_EVENT:
-			debug(2,"IPMI_EVENT","SET LAST PROCESSED");
+			debug(2,"IPM_EVT_REQ","SET LAST PROCESSED");
 			ipmi_set_last_processed_event( pkt );
 			break;
 		case IPMI_SE_CMD_GET_LAST_PROCESSED_EVENT:
-			debug(2,"IPMI_EVENT","GET LAST PROCESSED");
+			debug(2,"IPM_EVT_REQ","GET LAST PROCESSED");
 			ipmi_get_last_processed_event( pkt );
 			break;
 		case IPMI_SE_CMD_SET_EVENT_RECEIVER:
-			debug(2,"IPMI_EVENT","SET EVENT RECEIVER");
+			debug(2,"IPM_EVT_REQ","SET EVENT RECEIVER");
 			ipmi_set_event_receiver( pkt );
 			break;
 		case IPMI_SE_CMD_GET_EVENT_RECEIVER:
-			debug(2,"IPMI_EVENT","GET EVENT RECEIVER");
+			debug(2,"IPM_EVT_REQ","GET EVENT RECEIVER");
 			ipmi_get_event_receiver( pkt );
 			break;
 		case IPMI_SE_CMD_GET_DEVICE_SDR_INFO:
-			debug(2,"IPMI_EVENT","GET_DEVICE_SDR_INFO");
+			debug(2,"IPM_EVT_REQ","GET_DEVICE_SDR_INFO");
 			ipmi_get_device_sdr_info( pkt );
 			break;
 		case IPMI_SE_CMD_GET_DEVICE_SDR:
-			debug(2,"IPMI_EVENT","GET_DEVICE_SDR");
+			debug(2,"IPM_EVT_REQ","GET_DEVICE_SDR");
 			ipmi_get_device_sdr( pkt );
 			break;
 		case IPMI_SE_CMD_RSV_DEVICE_SDR_REPOSITORY:
-			debug(2,"IPMI_EVENT","RESERVE_DEVICE_SDR_REPOSITORY");
+			debug(2,"IPM_EVT_REQ","RESERVE_DEVICE_SDR_REPOSITORY");
 			ipmi_reserve_device_sdr_repository( pkt );
 			break;
 		case IPMI_SE_CMD_GET_SENSOR_READING:
-			debug(2,"IPMI_EVENT","GET_SENSOR_READING");
+			debug(2,"IPM_EVT_REQ","GET_SENSOR_READING");
 			ipmi_get_sensor_reading( pkt );
 			break;
 		case IPMI_SE_PLATFORM_EVENT:
-			debug(2,"IPMI_EVENT","SE_PLATFORM_EVENT");
+			debug(2,"IPM_EVT_REQ","SE_PLATFORM_EVENT");
 			ipmi_platform_event( pkt );
 			break;
 		case IPMI_SE_CMD_GET_SENSOR_READING_FACTORS:
-			debug(2,"IPMI_EVENT","GET_SENSOR_READING_FACTORS");
+			debug(2,"IPM_EVT_REQ","GET_SENSOR_READING_FACTORS");
 			ipmi_get_sensor_reading_factors( pkt );
 			break;
 		case IPMI_SE_CMD_SET_SENSOR_HYSTERESIS:
-			debug(2,"IPMI_EVENT","SET_SENSOR_HYSTERESIS-NS");
+			debug(2,"IPM_EVT_REQ","SET_SENSOR_HYSTERESIS-NS");
 			pkt->resp->completion_code = CC_NOT_SUPPORTED;
 			pkt->hdr.resp_data_len = 0;
 			break;
 		case IPMI_SE_CMD_GET_SENSOR_HYSTERESIS:
-			debug(2,"IPMI_EVENT","GET_SENSOR_HYSTERESIS-NS");
+			debug(2,"IPM_EVT_REQ","GET_SENSOR_HYSTERESIS-NS");
 			pkt->resp->completion_code = CC_NOT_SUPPORTED;
 			pkt->hdr.resp_data_len = 0;
 			break;
 		case IPMI_SE_CMD_SET_SENSOR_THRESHOLD:
-			debug(2,"IPMI_EVENT","SET_SENSOR_THRESHOLD-NS");
+			debug(2,"IPM_EVT_REQ","SET_SENSOR_THRESHOLD-NS");
 			pkt->resp->completion_code = CC_NOT_SUPPORTED;
 			pkt->hdr.resp_data_len = 0;
 			break;
 		case IPMI_SE_CMD_GET_SENSOR_THRESHOLD:
-			debug(2,"IPMI_EVENT","GET_SENSOR_THRESHOLD");
+			debug(2,"IPM_EVT_REQ","GET_SENSOR_THRESHOLD");
 			ipmi_get_sensor_threshold(pkt);
 			break;
 		case IPMI_SE_CMD_SET_SENSOR_EVENT_ENABLE:
-			debug(2,"IPMI_EVENT","SET_SENSOR_EVENT_ENABLE-NS");
+			debug(2,"IPM_EVT_REQ","SET_SENSOR_EVENT_ENABLE-NS");
 			pkt->resp->completion_code = CC_NOT_SUPPORTED;
 			pkt->hdr.resp_data_len = 0;
 			break;
 		case IPMI_SE_CMD_GET_SENSOR_EVENT_ENABLE:
-			debug(2,"IPMI_EVENT","GET_SENSOR_EVENT_ENABLE-NS");
+			debug(2,"IPM_EVT_REQ","GET_SENSOR_EVENT_ENABLE-NS");
 			pkt->resp->completion_code = CC_NOT_SUPPORTED;
 			pkt->hdr.resp_data_len = 0;
 			break;
 		case IPMI_SE_CMD_REARM_SENSOR_EVENTS:
-			debug(2,"IPMI_EVENT","REARM_SENSOR_EVENTS-NS");
+			debug(2,"IPM_EVT_REQ","REARM_SENSOR_EVENTS-NS");
 			pkt->resp->completion_code = CC_NOT_SUPPORTED;
 			pkt->hdr.resp_data_len = 0;
 			break;
 		case IPMI_SE_CMD_GET_SENSOR_EVENT_STATUS:
-			debug(2,"IPMI_EVENT","GET_SENSOR_EVENT_STATUS-NS");
+			debug(2,"IPM_EVT_REQ","GET_SENSOR_EVENT_STATUS-NS");
 			pkt->resp->completion_code = CC_NOT_SUPPORTED;
 			pkt->hdr.resp_data_len = 0;
 			break;
 		case IPMI_SE_CMD_SET_SENSOR_TYPE:
-			debug(2,"IPMI_EVENT","SET_SENSOR_TYPE-NS");
+			debug(2,"IPM_EVT_REQ","SET_SENSOR_TYPE-NS");
 			pkt->resp->completion_code = CC_NOT_SUPPORTED;
 			pkt->hdr.resp_data_len = 0;
 			break;
 		case IPMI_SE_CMD_GET_SENSOR_TYPE:
-			debug(2,"IPMI_EVENT","GET_SENSOR_TYPE-NS");
+			debug(2,"IPM_EVT_REQ","GET_SENSOR_TYPE-NS");
 			pkt->resp->completion_code = CC_NOT_SUPPORTED;
 			pkt->hdr.resp_data_len = 0;
 			break;
 		case IPMI_SE_CMD_ALERT_IMMEDIATE:
 		case IPMI_SE_CMD_PET_ACKNOWLEDGE:
 		default:
-			debug(2,"IPMI_EVENT","CMD_NOT_SUPPORTED");
+			debug(2,"IPM_EVT_REQ","CMD_NOT_SUPPORTED");
 			pkt->resp->completion_code = CC_NOT_SUPPORTED;
 			pkt->hdr.resp_data_len = 0;
 			break;
@@ -714,12 +715,13 @@ ipmi_set_event_receiver( IPMI_PKT *pkt )
 		evt_config.receiver_lun = req->evt_receiver_lun;
 		evt_config.evt_enabled = 1;
 
-		info("IPMI_EVENT","SET EVENT RECEIVER");
-		info("IPMI_EVENT","\tslave addr > 0x%02X",evt_config.receiver_slave_addr);
-		info("IPMI_EVENT","\tevent > ENABLED");
+		info("EVT_SET_RCV","SET_EVENT_RECEIVER");
+		debug(3,"EVT_SET_RCV","\tslave addr > 0x%02X",evt_config.receiver_slave_addr);
+		debug(3,"EVT_SET_RCV","\tLUN > 0x%02x"       ,evt_config.receiver_lun);		
+		debug(3,"EVT_SET_RCV","\tevent > ENABLED");
 	} else {
 		evt_config.evt_enabled = 0;
-		info("IPMI_EVENT","\tevent > DISABLED");
+		info("EVT_SET_RCV","\tevent > DISABLED");
 	}
 	
 	resp->completion_code = CC_NORMAL;
@@ -763,6 +765,8 @@ ipmi_send_event_req( uchar *msg_cmd, unsigned msg_len, void(*ipmi_completion_fun
 	uchar seq;
 	uchar responder_slave_addr;
 
+    info("IPMI_SND_EVT","Preparing event pkt");
+
 	ipmi_event_init();
 
 	if( !( req_ws = ws_alloc() ) ) {
@@ -781,6 +785,7 @@ ipmi_send_event_req( uchar *msg_cmd, unsigned msg_len, void(*ipmi_completion_fun
 	
 	switch( req_ws->outgoing_protocol ) {
 		case IPMI_CH_PROTOCOL_IPMB: {
+      info("IPMI_SND_EVT","PROTOCOL_IPMB");
 			IPMI_IPMB_REQUEST *ipmb_req = ( IPMI_IPMB_REQUEST * )&( req_ws->pkt_out );
 			req_ws->addr_out = evt_config.receiver_slave_addr;
 			pkt->req = ( IPMI_CMD_REQ * )&( ipmb_req->command );

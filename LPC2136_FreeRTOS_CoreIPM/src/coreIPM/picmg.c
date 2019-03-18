@@ -417,7 +417,7 @@ picmg_init( void )
 {
 	int i;
 
-	debug(3, "PICMG_INIT", "picmg_init: ingress" );
+	info("PICMG_INIT", "picmg_init: ingress" );
 
 	/* reset fru states, M1 except for uninstalled mezzanine FRUs which are M0 */
 	for( i = 0; i < MAX_FRU_DEV_ID; i++ )
@@ -548,7 +548,7 @@ picmg_m2_state( unsigned fru_id )
 void
 picmg_handle_switch_state_change( uchar state, uchar fru_id )
 {
-	debug( 3, "PICMG_STATE", "HS state change : %x", state );
+	info("PICMG_STATE", "HS state change : %x", state );
 	
 	/* if the Insertion Criteria Met condition exists then we can go to M2 state */
 	if( gpio_get_handle_switch_state() == HANDLE_SWITCH_CLOSED ) {
@@ -559,7 +559,7 @@ picmg_handle_switch_state_change( uchar state, uchar fru_id )
 	fru[fru_id].locked = 0;
 	
 	if( state == HANDLE_SWITCH_CLOSED ) {	// Handle closed
-		debug( 3, "PICMG_STATE", "HS CLOSED");
+		info("PICMG_STATE", "HS CLOSED");
 		switch( fru[fru_id].state ) {
 			case FRU_STATE_M0_NOT_INSTALLED:
 				/* how did we get here ? */
@@ -584,7 +584,7 @@ picmg_handle_switch_state_change( uchar state, uchar fru_id )
 		}
 	} else {	// Handle open
 		switch( fru[fru_id].state ) {
-		debug( 3, "PICMG_STATE", "HS OPENED");
+		info("PICMG_STATE", "HS OPENED");
 			case FRU_STATE_M0_NOT_INSTALLED:
 				/* how did we get here ? */
 				break;
@@ -646,7 +646,7 @@ picmg_set_fru_activation( IPMI_PKT *pkt )
 	SET_FRU_ACTIVATION_CMD_RESP	*resp = ( SET_FRU_ACTIVATION_CMD_RESP * )(pkt->resp);
 	unsigned char		cc = CC_NORMAL;
 
-	debug(3,"PICMG_FRU", "Set fru activation" );
+	info("PICMG_FRU", "Set fru activation" );
 
 	pkt->hdr.resp_data_len = sizeof( SET_FRU_ACTIVATION_CMD_RESP ) - 1;
 
@@ -758,7 +758,7 @@ picmg_m5_state( unsigned fru_id )
 	FRU_HOT_SWAP_EVENT_MSG_REQ msg;
 
 	//dprintf( DBG_IPMI | DBG_INOUT, "picmg_m5_state: ingress\n" );
-	debug( 3, "PICMG_STATE", "FRU %d in M5", fru_id );
+	info("PICMG_STATE", "FRU %d in M5", fru_id );
 	
 	fru[fru_id].state = FRU_STATE_M5_DEACTIVATION_REQUEST;
 
@@ -797,7 +797,7 @@ picmg_m6_state( unsigned fru_id )
 {
 	FRU_HOT_SWAP_EVENT_MSG_REQ msg;
 
-	debug( 3, "PICMG_STATE", "FRU %d in M6", fru_id );
+	info("PICMG_STATE", "FRU %d in M6", fru_id );
 	
 	/* set state */
 	fru[fru_id].state = FRU_STATE_M6_DEACTIVATION_IN_PROGRESS;
@@ -843,7 +843,7 @@ picmg_set_power_level( IPMI_PKT *pkt )
 	unsigned		power_level;
 	
 	//dprintf( DBG_IPMI | DBG_INOUT, "picmg_set_power_level: ingress\n" );
-	debug( 3, "PICMG", "picmg_set_power_level ingr" );
+	info("PICMG", "picmg_set_power_level ingr" );
 
 	resp->completion_code = CC_NORMAL;
 	resp->picmg_id = PICMG_ID;

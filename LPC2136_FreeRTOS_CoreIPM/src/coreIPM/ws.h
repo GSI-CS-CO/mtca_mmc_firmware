@@ -37,8 +37,9 @@ support and contact details.
 #define WS_ACTIVE_MASTER_READ		0x8
 #define WS_ACTIVE_MASTER_READ_PENDING	0x9
 
-#define WS_ARRAY_SIZE	16
-#define WS_BUF_LEN 32
+// using defines from ipmi.h
+//#define WS_ARRAY_SIZE	4
+//#define WS_BUF_LEN 128
 
 #define WS_FL_GENERAL_CALL	1
 #define WS_FL_REPEATED_START	2
@@ -58,5 +59,9 @@ void ws_set_state( IPMI_WS * ws, unsigned state );
 void ws_process_work_list( void );
 IPMI_WS *ws_get_elem_seq( uchar seq, IPMI_WS* ws_ignore );
 void ws_process_incoming( IPMI_WS *ws );
+void ws_unclog(void);
+void ws_print_state( unsigned );
+void ws_print_content( unsigned );
+
 
 

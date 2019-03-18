@@ -24,12 +24,13 @@
 /*
  * Host type state of AMC_FTRN card
  */
-#define AMC_FTRN_UNKNOWN_HOST       0x00
+#define AMC_FTRN_HOST_NOT_EVALUATED 0x00
+#define AMC_FTRN_UNKNOWN_HOST       0x01
 #define AMC_FTRN_IN_LIBERA_SLOT_7 	0x07
-#define AMC_FTRN_IN_LIBERA_SLOT_8	0x08
-#define AMC_FTRN_IN_MICROTCA		0x11
-#define AMC_FTRN_IN_MICROTCA_4      0x22
-#define AMC_FTRN_OUTSIDE			0x77
+#define AMC_FTRN_IN_LIBERA_SLOT_8   0x08
+#define AMC_FTRN_IN_MICROTCA        0x11
+#define AMC_FTRN_IN_MICROTCA_4      0x44
+#define AMC_FTRN_OUTSIDE            0x77
 
 
 #define LED_TEST_OFF         0x0

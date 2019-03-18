@@ -76,6 +76,7 @@ struct fru_data {
 void
 mmc_specific_fru_init( void )
 {
+  info("MMC_CONFIG","FRU record Init");
 	// ====================================================================
 	// initialize the FRU data records
 	// - everything is cached for an AMC module
@@ -353,8 +354,10 @@ mmc_specific_sensor_init( void )
 	 * 	Therefore we have resolution of 14000 (mV) /255 == 54.9(mV per LSB)
 	 * 	mV to V == factor -3, therfore K2 factor is -3
 	 */
-	generic_sensor_init(&voltage_payload_12_sdr,"+12V Payload",ST_VOLTAGE);
+	info("MMC_CONFIG","Adding Sensors:");
 
+	generic_sensor_init(&voltage_payload_12_sdr,"+12V Payload",ST_VOLTAGE);
+  voltage_payload_12_sdr.sensor_units2 = SENSOR_UNIT_VOLTS;
 	voltage_payload_12_sdr.M=55; //Set M factor to
 	voltage_payload_12_sdr.R_B_exp=-3<<4; //Set K2
 	voltage_payload_12_sdr.sensor_threshold_access = 0b01; // thresholds are readable, per Reading Mask
@@ -388,6 +391,7 @@ mmc_specific_sensor_init( void )
 	 * 	mV to V == factor -3, therefore K2 factor is -3
 	 */
 	generic_sensor_init(&voltage_mgmt_3v3_sdr,"+3.3V Mng",ST_VOLTAGE);
+  voltage_mgmt_3v3_sdr.sensor_units2 = SENSOR_UNIT_VOLTS;
 	voltage_mgmt_3v3_sdr.M=16;
 	voltage_mgmt_3v3_sdr.R_B_exp=-3<<4;
 	voltage_mgmt_3v3_sdr.ignore_sensor=0;
@@ -470,11 +474,11 @@ mmc_specific_sensor_init( void )
 
 	/** Discrete sensors:
 	 *
-	 *		FPGA_CONFIG
-	 *		CONF_DONE
-	 *		LIBERA TRIGGER
-	 *      MTCA4 TRIGGER
-	 *      JTAG SWITCH POS
+	 *    FPGA_CONFIG
+	 *    CONF_DONE
+	 *    LIBERA TRIGGER
+	 *    MTCA4 TRIGGER
+	 *    JTAG SWITCH POS
 	 *
 	 */
 	generic_sensor_init(&fpga_config_sdr,"FPGA CONFIG",IPMI_LIBERA_SENSOR_TYPE);
@@ -520,6 +524,7 @@ mmc_specific_sensor_init( void )
 
 	info("MMC_CONFIG","Sensors added: %d",nof_sensors_added());
 
+  info("MMC_CONFIG","Creating Temp monitor task");
 	xTaskCreate(tsk_temp_monitor,"TMP MON",configMINIMAL_STACK_SIZE,0,tskIDLE_PRIORITY+1,0);
 
 }
@@ -536,9 +541,9 @@ struct lm73_ws g_LM73_TEMP2 = { .address = 0x4a };
  * Monitor task, executed periodically on low priority
  */
 void tsk_temp_monitor() {
-	info("TEMP_MON", "Temp mon task start");
 	lm73_init(&g_LM73_TEMP1);
 	lm73_init(&g_LM73_TEMP2);
+	info("TEMP_MON", "Starting Temp mon task");
 	while (1) {
 		lm73_readTemp(&g_LM73_TEMP1);
 		g_module_state.sensors.TEMP1 = g_LM73_TEMP1.last_reading;

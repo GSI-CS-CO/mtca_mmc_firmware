@@ -31,6 +31,9 @@ support and contact details.
 //#include "serial.h"
 #include "ws.h"
 #include "../critical.h"
+#include "../payload.h"
+
+#include <stdio.h>
 
 extern unsigned long lbolt;
 
@@ -153,7 +156,11 @@ ws_unclog() {
 void
 ws_set_state( IPMI_WS * ws, unsigned state )
 {
-	ws->ws_state = state;
+  if (state >= WS_FREE && state <= WS_ACTIVE_MASTER_READ_PENDING){
+	  CRITICAL_START
+	    ws->ws_state = state;
+    CRITICAL_END
+  }
 }
 
 /*==============================================================
@@ -164,6 +171,9 @@ ws_set_state( IPMI_WS * ws, unsigned state )
 void ws_process_work_list( void ) 
 {
 	IPMI_WS *ws;
+	
+	int hs_event = 0;
+	int in_libera = 0;
 
 	ws = ws_get_elem( WS_ACTIVE_IN );
 	if( ws ) {
@@ -174,35 +184,68 @@ void ws_process_work_list( void )
 		else
 			ws_process_incoming( ws ); // otherwise call the default handler
 	}
+
 	ws = ws_get_elem( WS_ACTIVE_MASTER_WRITE );
-	if( ws ) {
-//		printf("ws_process_work_list: found a WS_ACTIVE_MASTER_WRITE req\n" );
-		//dputstr( DBG_WS | DBG_LVL1, "ws_process_work_list: found a WS_ACTIVE_MASTER_WRITE req\n" );
-		ws_set_state( ws, WS_ACTIVE_MASTER_WRITE_PENDING );
-		switch( ws->outgoing_medium ) {
-			case IPMI_CH_MEDIUM_IPMB:
-				i2c_master_write( ws );			
-				break;
+	if( ws ) {  
+
+#ifdef LIBERA_HS_EVENT_HACK
+		// HACK: since Libera ICB/BMC works only as I2C master on IPMI therefore
+		// it expects from MMC only responses to request and can not process events
+		// sent by MMC itself (like sensor events)
+		// Therefore we need to check for HotSwap event.
+		
+		// check if outgoing packet is event
+		hs_event =	(ws->pkt_out[4] == IPMI_SE_PLATFORM_EVENT        )
+					// && (ws->pkt_out[5] == IPMI_EVENT_MESSAGE_REVISION   )
+					 && (ws->pkt_out[6] == IPMI_SENSOR_MODULE_HOT_SWAP   )
+					// && (ws->pkt_out[8] == IPMI_EVENT_TYPE_GENERIC_AVAILABILITY)
+					;
+		// check if we are in Libera or do not know yet
+		in_libera = (g_module_state.host_type == AMC_FTRN_IN_LIBERA_SLOT_7) || 
+					(g_module_state.host_type == AMC_FTRN_IN_LIBERA_SLOT_8) ||
+					(g_module_state.host_type == AMC_FTRN_UNKNOWN_HOST);
+
+
+		// Check conditions if ws packet can be sent out
+		if (hs_event && in_libera){
+		  // we definetly know we are in Libera, so delete HS event
+		  printf("\nINFO: In Libera. Deleting event=0x%02X!\n", ws->pkt_out[4]);
+		  ws_free( ws );
+		  
+		} else {
+#endif
+		//process outgoing events and responses
+		  ws_set_state( ws, WS_ACTIVE_MASTER_WRITE_PENDING );
+		  
+		  if (hs_event) 
+		    printf("WS: Sending event: type=0x%02X sensor=0x%02X!\n", ws->pkt_out[4], ws->pkt_out[6]);
+		  
+		  switch( ws->outgoing_medium ) {
+			  case IPMI_CH_MEDIUM_IPMB:
+				  i2c_master_write( ws );			
+				  break;
 				
-			case IPMI_CH_MEDIUM_SERIAL:	/* Asynch. Serial/Modem (RS-232) 	*/
-//				serial_tm_send( ( unsigned char * )ws );
-//				break;
-				
-			case IPMI_CH_MEDIUM_ICMB10:	/* ICMB v1.0 				*/
-			case IPMI_CH_MEDIUM_ICMB09:	/* ICMB v0.9 				*/
-			case IPMI_CH_MEDIUM_LAN:	/* 802.3 LAN 				*/
-			case IPMI_CH_MEDIUM_LAN_AUX:	/* Other LAN				*/
-			case IPMI_CH_MEDIUM_PCI_SMB:	/* PCI SMBus				*/
-			case IPMI_CH_MEDIUM_SMB_1x:	/* SMBus v1.0/1.1			*/
-			case IPMI_CH_MEDIUM_SMB_20:	/* SMBus v2.0				*/
-			case IPMI_CH_MEDIUM_USB_1x:	/* reserved for USB 1.x			*/
-			case IPMI_CH_MEDIUM_USB_20:	/* reserved for USB 2.x			*/
-			case IPMI_CH_MEDIUM_SYS:	/* System Interface (KCS, SMIC, or BT)	*/
-				//dputstr( DBG_WS | DBG_ERR, "ws_process_work_list: unsupported protocol\n" );
-				ws_free( ws );
-				break;
+			  case IPMI_CH_MEDIUM_SERIAL:	/* Asynch. Serial/Modem (RS-232) 	*/
+			  case IPMI_CH_MEDIUM_ICMB10:	/* ICMB v1.0 				*/
+			  case IPMI_CH_MEDIUM_ICMB09:	/* ICMB v0.9 				*/
+			  case IPMI_CH_MEDIUM_LAN:	/* 802.3 LAN 				*/
+			  case IPMI_CH_MEDIUM_LAN_AUX:	/* Other LAN				*/
+			  case IPMI_CH_MEDIUM_PCI_SMB:	/* PCI SMBus				*/
+			  case IPMI_CH_MEDIUM_SMB_1x:	/* SMBus v1.0/1.1			*/
+			  case IPMI_CH_MEDIUM_SMB_20:	/* SMBus v2.0				*/
+			  case IPMI_CH_MEDIUM_USB_1x:	/* reserved for USB 1.x			*/
+			  case IPMI_CH_MEDIUM_USB_20:	/* reserved for USB 2.x			*/
+			  case IPMI_CH_MEDIUM_SYS:	/* System Interface (KCS, SMIC, or BT)	*/
+				  //dputstr( DBG_WS | DBG_ERR, "ws_process_work_list: unsupported protocol\n" );
+				  ws_free( ws );
+				  break;
+			}
+#ifdef LIBERA_HS_EVENT_HACK
 		}
+#endif
 	}
+	
+	// process incomming request
 	ws = ws_get_elem( WS_ACTIVE_MASTER_READ );
 	if( ws ) {
 		ws_set_state( ws, WS_ACTIVE_MASTER_READ_PENDING );
@@ -218,5 +261,89 @@ ws_process_incoming( IPMI_WS *ws )
 	ipmi_process_pkt( ws );
 	return;
 }
+
+
+
+/* print out state of elements in ws_array */
+void
+ws_print_state( unsigned max )
+{
+	unsigned i;
+  unsigned max_read;
+
+  if(max >= WS_ARRAY_SIZE){
+    max_read = WS_ARRAY_SIZE-1;
+  }else{
+    max_read = max;
+  }
+	for ( i = 0; i < max_read; i++ )
+	{
+		printf("ws_array[%d].ws_state : %d\n",i, ws_array[i].ws_state);
+	}
+}
+
+
+/* print out content of element [indx] in ws_array */
+void
+ws_print_content( unsigned indx )
+{
+  unsigned i, bound_indx;
+
+  if(bound_indx >= WS_ARRAY_SIZE){
+    bound_indx = WS_ARRAY_SIZE-1;
+  }else{
+    bound_indx = indx;
+  }
+
+
+
+  printf("------------------------\n\n");
+  printf("\n\nws_array[%d]:@%08X\n",bound_indx, &ws_array[bound_indx]);
+	printf("ws_array[%d]      : [HEX]\n",bound_indx);
+	printf("ws_state         : %X\n",ws_array[bound_indx].ws_state         );  
+	printf("len_rcv          : %X\n",ws_array[bound_indx].len_rcv          ); /* requested length of incoming pkt */
+	printf("len_in           : %X\n",ws_array[bound_indx].len_in           ); /* lenght of incoming pkt */
+	printf("len_out          : %X\n",ws_array[bound_indx].len_out          ); /* length of outgoing pkt */
+	printf("len_sent         : %X\n",ws_array[bound_indx].len_sent         ); /* length of pkt actually sent */
+	printf("timestamp        : %X\n",ws_array[bound_indx].timestamp        ); /* last access time to this ws element */
+	printf("flags            : %X\n",ws_array[bound_indx].flags            ); /* protocol dependent i.e. WS_FL_xx */
+	printf("addr_in          : %X\n",ws_array[bound_indx].addr_in          ); /* protocol dependent */
+	printf("addr_out         : %X\n",ws_array[bound_indx].addr_out         ); 
+	printf("incoming_channel : %X\n",ws_array[bound_indx].incoming_channel ); 
+	printf("outgoing_channel : %X\n",ws_array[bound_indx].outgoing_channel ); 
+	printf("incoming_protocol: %X\n",ws_array[bound_indx].incoming_protocol); 
+	printf("outgoing_protocol: %X\n",ws_array[bound_indx].outgoing_protocol); 
+	printf("incoming_medium  : %X\n",ws_array[bound_indx].incoming_medium  ); 
+	printf("outgoing_medium  : %X\n",ws_array[bound_indx].outgoing_medium  ); 
+	printf("interface        : %X\n",ws_array[bound_indx].interface        ); 
+	printf("seq_out          : %X\n",ws_array[bound_indx].seq_out          ); /* sequence number */
+	printf("delivery_attempts: %X\n",ws_array[bound_indx].delivery_attempts);
+	printf("pkt addr         : %08X\n",&ws_array[bound_indx].pkt);        
+        
+	printf("pkt_in adr       : %08X\n",&ws_array[bound_indx].pkt_in);
+	printf("pkt_out adr      : %08X\n",&ws_array[bound_indx].pkt_out);
+
+  // print content of incoming packet
+  printf("pkt_in:[\n");
+  for(i=0; i < WS_BUF_LEN; i++)
+  {
+    printf("%02X ", ws_array[bound_indx].pkt_in[i]);
+    if(((i+1) % 24) == 0 ) printf("#\n");
+  }
+  printf("]\n\n");
+
+  // print content of outgoing packet
+  printf("pkt_out:[\n");
+  for(i=0; i < WS_BUF_LEN; i++)
+  {
+    printf("%02X ", ws_array[bound_indx].pkt_out[i]);
+    if(((i+1) % 24) == 0 ) printf("#\n");
+  }
+  printf("]\n");
+  printf("------------------------\n\n");
+
+}
+
+
 
 

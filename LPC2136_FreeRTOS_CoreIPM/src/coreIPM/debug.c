@@ -86,3 +86,31 @@ puthex( unsigned char ch )
 
 }
 
+#define I2C_STAT_LOG_LEN 256
+
+unsigned char i2c_state_log[I2C_STAT_LOG_LEN][2];
+unsigned log_wr_index = 0;
+unsigned log_rd_index = 0;
+
+
+void log_i2c_status(unsigned cmd_stat, unsigned data){
+  i2c_state_log[log_wr_index][0] = cmd_stat;
+  i2c_state_log[log_wr_index][1] = data;
+
+  log_wr_index++;
+  log_wr_index = log_wr_index % I2C_STAT_LOG_LEN;
+}
+
+void list_i2c_status_log(void){
+  unsigned i;
+  unsigned index;
+  //log_rd_index = log_wr_index + 1;
+
+  printf("\nLast write index: %03d/%d\n",log_wr_index-1,I2C_STAT_LOG_LEN-1);
+  for (i = 0; i < I2C_STAT_LOG_LEN; i++){
+    index = (log_wr_index + i) % I2C_STAT_LOG_LEN;
+    printf("%03d\t%02X\t%02X \n",index, i2c_state_log[index][0], i2c_state_log[index][1]);
+  }
+}
+
+

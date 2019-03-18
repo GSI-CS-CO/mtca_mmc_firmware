@@ -45,6 +45,7 @@ extern void timer_add_reserved(
 extern void   timer_remove_reserved(void);
 unsigned long timer_get_expiration_time( void *handle );
 void timer_reset_callout_queue( void *handle, unsigned long ticks );
+void cq_array_print(void );
 
 
 

@@ -208,8 +208,12 @@ void i2c_initialize( void )
 	/* I2C_CLOCK_RATE = PCLK / I2CSCLH + I2CSCLL */
 	//I2C0SCLH = 50; /* For 120 KHz i2c clock using a 12 MHz chip clock */
 	//I2C0SCLL = 50;
-	I2C0SCLH = PCLK / I2C_CLOCK_RATE / 2;
-	I2C0SCLL = I2C0SCLH;
+	//I2C0SCLH = PCLK / I2C_CLOCK_RATE / 2;
+	//I2C0SCLL = I2C0SCLH;
+
+// DSL: set I2C0SCL period to 60k to match Libera
+ 	I2C0SCLH = 60;
+ 	I2C0SCLL = 60;
 
 
 	/* Set our slave address. The LSB of I2ADR is the general call bit.
@@ -372,6 +376,8 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 	
 	/* remove the state transition timer from the callout queue */
 	timer_remove_reserved();
+
+  log_i2c_status(i2stat, I2C0DAT);
 	
 	switch( i2stat ) {
 		/* Master transmitter/receiver mode common */
@@ -704,7 +710,7 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 			
 			/* set up data buffer */
 			if( !( context->ws = ws_alloc() ) ) {
-				dputstr( DBG_I2C | DBG_ERR, "i2c_procstat: ws_alloc failed \n" );
+				//dputstr( DBG_I2C | DBG_ERR, "i2c_procstat: ws_alloc failed \n" );
 				/* Return NAK, we should transition to SLAVE_DATA_RECEIVED_NOT_ACKED */
 				I2CCONCLR( I2C_CTRL_FL_SI | I2C_CTRL_FL_AA, channel ); 
 				break;
@@ -906,10 +912,10 @@ i2c_proc_stat(unsigned i2stat, unsigned channel)
 			break;
 	}
 
-	if( start_timer && i2c_enable_timeout ) {
+	//if( start_timer && i2c_enable_timeout ) {
 		timer_add_reserved( (void *)&context->state_transition_timer,
 		       	10*HZ, i2c_timeout, ( unsigned char * )context ); /* 10 sec timeout */
-	}
+	//}
 }
 
 void
@@ -933,7 +939,7 @@ i2c_timeout( unsigned char *arg )
 	I2C_CONTEXT *context = ( I2C_CONTEXT * )arg;
 	
 	/* state transition timeout handling */
-	dputstr( DBG_I2C | DBG_ERR, "i2c_timeout: \n" );
+	//dputstr( DBG_I2C | DBG_ERR, "i2c_timeout: \n" );
 
 	/* increment the channel error count. */
 	context->error_count++;
@@ -1087,7 +1093,7 @@ i2c_master_write( IPMI_WS *ws )
 		 * flag (SI) is set, and the status code in the status register 
 		 * (I2STAT) will be I2STAT_START_SENT (0x08). */
 		
-		dputstr( DBG_I2C | DBG_LVL1, "i2c_master_write: sending START bit\n" );
+//		dputstr( DBG_I2C | DBG_LVL1, "i2c_master_write: sending START bit\n" );
 
 		I2CCONCLR( I2C_CTRL_FL_STO, channel ); /* clear any residual bits */
 		I2CCONSET( I2C_CTRL_FL_STA | I2C_CTRL_FL_I2EN | I2C_CTRL_FL_AA, channel );
@@ -1112,7 +1118,7 @@ i2c_master_complete( void *ws1, int status )
 
 	switch( status ) {
 		case I2ERR_NOERR:
-			dputstr( DBG_I2C | DBG_LVL1, "i2c_master_complete: completed with I2ERR_NOERR\n" );
+//			dputstr( DBG_I2C | DBG_LVL1, "i2c_master_complete: completed with I2ERR_NOERR\n" );
 			ws_set_state( ws, WS_ACTIVE_MASTER_WRITE_SUCCESS );
 			if( ws->ipmi_completion_function ) {
 				( ws->ipmi_completion_function )( (void *)ws, 
@@ -1128,7 +1134,7 @@ i2c_master_complete( void *ws1, int status )
 		case I2ERR_NAK_RCVD:
 		case I2ERR_TIMEOUT:
 		default:
-			dputstr( DBG_I2C | DBG_ERR, "i2c_master_complete: completed with I2ERR\n" );
+//			dputstr( DBG_I2C | DBG_ERR, "i2c_master_complete: completed with I2ERR\n" );
 			ws->delivery_attempts++;
 			
 			/* if status indicates a retryable error and we have not

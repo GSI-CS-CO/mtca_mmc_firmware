@@ -46,6 +46,8 @@ support and contact details.
 #include "../payload.h"
 #include "../util/report.h"
 
+#include "../project_defs.h"
+
 unsigned char mmc_ipmbl_address;
 unsigned char mmc_state;
 unsigned char mmc_hot_swap_state;
@@ -53,6 +55,7 @@ unsigned char switch_poll_timer_handle;
 unsigned char module_monitor_voltage_handle;
 unsigned send_event_retry_timer_handle = 0;
 unsigned char pending_cmd_seq;
+unsigned char switch_poll_enabled = 0;
 
 #define MMC_STATE_RESET		0
 #define MMC_STATE_RUNNING	1
@@ -190,16 +193,16 @@ module_init( void )
 
 	mmc_state = MMC_STATE_RUNNING;
 	i2c_interface_enable_local_control( 0, 0 );
-    // fru_data_init();
+  // fru_data_init();
 	// hotswap_init_sensor_record();
 	module_sensor_init();
 
+#ifndef LIBERA_HS_EVENT_HACK 
+  // If build without Libera hack (see project_defs.h):
+
 	// ====================================================================
-	// Handle current state of Hot Swap Handle 
-	/*
-	if( handle_state == HANDLE_SWITCH_CLOSED )
-			mmc_hot_swap_state_change( MODULE_HANDLE_CLOSED );
-	*/
+	// Check current state of Hot Swap Handle 
+  // and arm periodic checking of the Hot Swap handle state change
 	if ( handle_state == HANDLE_SWITCH_OPEN ) {
 		mmc_hot_swap_state_change( MODULE_HANDLE_OPENED );
 	} else {
@@ -208,11 +211,17 @@ module_init( void )
 	}
 
 	// ====================================================================
-	// check the hot swap switch periodically
+	// start checking the hot swap switch periodically
 	timer_add_callout_queue( (void *)&switch_poll_timer_handle,
-		       	5*HZ, switch_state_poll, 0 ); /* 5 sec timeout */
+		       	5*HZ, switch_state_poll, 0 ); // 5 sec timeout
 
-//	timer_add_callout_queue(&module_monitor_voltage_handle,HZ/10,module_monitor_dcVoltage,0);
+   //	timer_add_callout_queue(&module_monitor_voltage_handle,HZ/10,module_monitor_dcVoltage,0);
+#else
+    // Build with Libera hack:
+    // just start payload activation process, ignore HS handle state
+		payload_activate();
+
+#endif
 
 }
 #else
@@ -319,8 +328,10 @@ switch_state_poll( unsigned char *arg )
 {
 	unsigned char handle_state = iopin_get( HOT_SWAP_HANDLE );
 
+	debug(3, "MMC","switch_state_poll");
+
 	if( handle_state != hot_swap_handle_last_state ) {
-		info("MMC","HotSwap handle %s\n", (handle_state == HANDLE_SWITCH_OPEN) ? "OPEN" : "CLOSED");
+		info("MMC","HotSwap handle to %s\n", (handle_state == HANDLE_SWITCH_OPEN) ? "OPEN" : "CLOSED");
 		if( handle_state == HANDLE_SWITCH_OPEN ){
 			mmc_hot_swap_state_change( MODULE_HANDLE_OPENED );
 		}else{
@@ -331,10 +342,13 @@ switch_state_poll( unsigned char *arg )
 
 		hot_swap_handle_last_state = handle_state;
 	}
+
 	
 	// Re-start the timer
-	timer_add_callout_queue( (void *)&switch_poll_timer_handle,
-		       	1, switch_state_poll, 0 ); /* every 5hz */
+	debug(3, "MMC","Restarting HS poll");
+  debug(3, "MMC","CQ handle: 0x%08x", &switch_poll_timer_handle);
+  timer_add_callout_queue( (void *)&switch_poll_timer_handle,
+		       	5*HZ, switch_state_poll, 2 ); // every 5 sec
 
 }
 
@@ -343,9 +357,32 @@ module_rearm_events( void )
 {
 	unsigned char handle_state = iopin_get( HOT_SWAP_HANDLE );
 
+  // When MCH sends SET_RECEIVER_EVENT
+//  debug(3, "MMC","Re-checking and sending HS state");
+  info("MMC","HS state recheck");
 	( handle_state == HANDLE_SWITCH_OPEN )?
 			mmc_hot_swap_state_change( MODULE_HANDLE_OPENED ):
 			mmc_hot_swap_state_change( MODULE_HANDLE_CLOSED );
+
+#ifdef LIBERA_HS_EVENT_HACK
+	// If build with Libera hack (see project_defs.h):    
+
+	// Start the timer for checking Hot Swap handle
+	// check the hot swap switch periodically
+	// but rearm only once so only one callout queue
+	// entry for HS handle polling is added
+	if (switch_poll_enabled == 0){
+		switch_poll_enabled = 1;
+		info("MMC","Rearming HS polling");
+		info("MMC","CQ handle: 0x%08x", &switch_poll_timer_handle);
+		timer_add_callout_queue( (void *)&switch_poll_timer_handle,
+			2*HZ, switch_state_poll, 1 ); // 5 sec timeout
+	  }
+	  
+	  // also change host type because at this point we know we are in MTCA
+	  g_module_state.ipmi_amc_host = AMC_FTRN_IN_MICROTCA;
+	  
+#endif
 
 }
 
@@ -774,39 +811,55 @@ mmc_set_port_state( IPMI_PKT *pkt )
 	SET_AMC_PORT_STATE_CMD_REQ	*req = ( SET_AMC_PORT_STATE_CMD_REQ * )pkt->req;
 	SET_AMC_PORT_STATE_CMD_RESP	*resp = ( SET_AMC_PORT_STATE_CMD_RESP * )pkt->resp;
 
-	info("MMC", "Setting port state:%d ch:%d",
-		 req->state,
-		 req->amc_channel_id
-	);
-	info("MMC", "lane3210:%d%d%d%d",
-		 req->lane_3_bit_flag,
-		 req->lane_2_bit_flag,
-		 req->lane_1_bit_flag,
-		 req->lane_0_bit_flag
-	);
+  // only respond to setting PCIe port
+  if ((req->link_type       == AMC_LINK_PCI_EXPRESS) && 
+      (req->link_type_ext   == 0                   ) &&
+      (req->lane_3_bit_flag == 0                   ) &&
+      (req->lane_2_bit_flag == 0                   ) &&
+      (req->lane_1_bit_flag == 0                   ) &&
+      (req->lane_0_bit_flag == 1                   ) 
+  ){
 
-	info("MMC", "link type:%d(%s)", req->link_type, link_type_name(req->link_type));
-	info("MMC",	"link type ext:%d", req->link_type_ext);
-	info("MMC", "link group ID:%d\n", req->link_grp_id );
+	    info("MMC", "Setting port state:%d ch:%d",
+		     req->state,
+		     req->amc_channel_id
+	    );
+	    info("MMC", "lane3210:%d%d%d%d",
+		     req->lane_3_bit_flag,
+		     req->lane_2_bit_flag,
+		     req->lane_1_bit_flag,
+		     req->lane_0_bit_flag
+	    );
+
+	    info("MMC", "link type:%d(%s)", req->link_type, link_type_name(req->link_type));
+	    info("MMC",	"link type ext:%d", req->link_type_ext);
+	    info("MMC", "link group ID:%d\n", req->link_grp_id );
 
 
-	resp->completion_code = CC_NORMAL;
-	resp->picmg_id = PICMG_ID;
-	pkt->hdr.resp_data_len = sizeof( SET_AMC_PORT_STATE_CMD_RESP ) - 1;
+	    resp->completion_code = CC_NORMAL;
+	    resp->picmg_id = PICMG_ID;
+	    pkt->hdr.resp_data_len = sizeof( SET_AMC_PORT_STATE_CMD_RESP ) - 1;
 
-	port_state.link_grp_id     = req->link_grp_id;
-	port_state.link_type_ext   = req->link_type_ext;
-	port_state.link_type       = req->link_type;
-	port_state.lane_3_bit_flag = req->lane_3_bit_flag;
-	port_state.lane_2_bit_flag = req->lane_2_bit_flag;
-	port_state.lane_1_bit_flag = req->lane_1_bit_flag;
-	port_state.lane_0_bit_flag = req->lane_0_bit_flag;
-	port_state.amc_channel_id  = req->amc_channel_id;
-	port_state.state           = req->state;
-//	port_state.on_carrier_dev_id = req->on_carrier_dev_id;
+	    port_state.link_grp_id     = req->link_grp_id;
+	    port_state.link_type_ext   = req->link_type_ext;
+	    port_state.link_type       = req->link_type;
+	    port_state.lane_3_bit_flag = req->lane_3_bit_flag;
+	    port_state.lane_2_bit_flag = req->lane_2_bit_flag;
+	    port_state.lane_1_bit_flag = req->lane_1_bit_flag;
+	    port_state.lane_0_bit_flag = req->lane_0_bit_flag;
+	    port_state.amc_channel_id  = req->amc_channel_id;
+	    port_state.state           = req->state;
+    //	port_state.on_carrier_dev_id = req->on_carrier_dev_id;
 
-	payload_port_set_state(port_state.link_type,link_type_name(port_state.link_type),
-			               port_state.amc_channel_id,req->state);
+	    payload_port_set_state(port_state.link_type,link_type_name(port_state.link_type),
+			                   port_state.amc_channel_id,req->state);
+
+  } else { // invalid port setting
+	    info("MMC", "invalid port! Ignoring command!");
+	    resp->completion_code = CC_NORMAL;
+	    resp->picmg_id = PICMG_ID;
+	    pkt->hdr.resp_data_len = sizeof( SET_AMC_PORT_STATE_CMD_RESP ) - 1;
+  }
 }
 
 void

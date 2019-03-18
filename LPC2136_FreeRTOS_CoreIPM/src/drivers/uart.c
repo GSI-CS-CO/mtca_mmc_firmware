@@ -116,8 +116,18 @@ struct uart_ws g_UART0_WS;
 void UART0_ISR(void) __attribute__ ((interrupt));
 //void UART_ISR_1(void) __attribute__ ((interrupt));
 
-#define UARTINT_MODEM		0x00	// Modem interrupt#define UARTINT_ERROR		0x06	// RX Line Status/Error#define UARTINT_RX_DATA_AVAIL	0x04	// Rx data avail or trig level in FIFO#define UARTINT_CHAR_TIMEOUT	0x0C	// Character Time-out indication	      #define UARTINT_THRE		0x02	// Transmit Holding Register Empty
-#define UARTINT_ENABLE_RX_DATA	0x001	// Enable the RDA interrupts.#define UARTINT_ENABLE_THRE	0x002	// Enable the THRE interrupts.#define UARTINT_ENABLE_ERROR	0x004	// Enable the RX line status interrupts.#define UARTINT_ENABLE_MODEM	0x008	// Enable the modem interrupt.#define UARTINT_ENABLE_CTS	0x080	// Enable the CTS interrupt.#define UARTINT_ENABLE_AUTO_BAUD	0x100	// Enable Auto-baud Time-out Interrupt.#define UARTINT_ENABLE_END_AUTO_BAUD	0x200	// Enable End of Auto-baud Interrupt.
+#define UARTINT_MODEM		0x00	// Modem interrupt
+#define UARTINT_ERROR		0x06	// RX Line Status/Error
+#define UARTINT_RX_DATA_AVAIL	0x04	// Rx data avail or trig level in FIFO
+#define UARTINT_CHAR_TIMEOUT	0x0C	// Character Time-out indication	      
+#define UARTINT_THRE		0x02	// Transmit Holding Register Empty
+#define UARTINT_ENABLE_RX_DATA	0x001	// Enable the RDA interrupts.
+#define UARTINT_ENABLE_THRE	0x002	// Enable the THRE interrupts.
+#define UARTINT_ENABLE_ERROR	0x004	// Enable the RX line status interrupts.
+#define UARTINT_ENABLE_MODEM	0x008	// Enable the modem interrupt.
+#define UARTINT_ENABLE_CTS	0x080	// Enable the CTS interrupt.
+#define UARTINT_ENABLE_AUTO_BAUD	0x100	// Enable Auto-baud Time-out Interrupt.
+#define UARTINT_ENABLE_END_AUTO_BAUD	0x200	// Enable End of Auto-baud Interrupt.
 #define UART_LSR_RX_DATA_RDY		0x01
 #define UART_LSR_OVERRUN_ERROR		0x02
 #define UART_LSR_PARITY_ERROR		0x04
@@ -162,7 +172,9 @@ void uart_init(void) {
 	 * DIVADDVAL = 1
 	 * DIVMULVAL = 12
 	 */
-	U0DLL = 6; /* 115200 Baud Rate @ 12MHz VPB Clock */
+  U0DLL = 6; /* 115200 Baud Rate @ 12MHz VPB Clock */
+	//U0DLL = 12; /* 57600 Baud Rate @ 12MHz VPB Clock */
+
 	U0FDR = (12 << 4) | (1); /* Bits 7:4 == MULVAL, 4:0 == ADDVAL */
 
 	U0LCR = 0x03; /* Disable access to Divisor Latches */

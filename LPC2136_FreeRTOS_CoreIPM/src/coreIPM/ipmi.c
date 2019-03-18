@@ -199,11 +199,14 @@ ipmi_process_pkt( IPMI_WS * ws )
 
 	if(get_report_level() > 6){
 		int i;
-		printf( "\n\tIPMB REQUEST: [ " );
+		printf( "\nIPMREQ: " );
 		for( i = 0; i < ws->len_in; i++ ) {
 			printf("%02X ",((unsigned char *)ws->pkt_in)[i]);
+      if(((i+1) % 24) == 0 ){
+        printf("$\n");
+      }
 		}
-		printf( "]\n" );
+		printf( "]\n\n" );
 	}
 
 	switch( ws->incoming_protocol ) {
@@ -296,6 +299,7 @@ ipmi_process_pkt( IPMI_WS * ws )
 			break;
 			
 		case IPMI_CH_PROTOCOL_TMODE:		/* Terminal Mode */
+/*
 			//dputstr( DBG_IPMI | DBG_LVL1, "ipmi_process_pkt: Terminal Mode protocol\n" );
 			debug( 3, "PROC_PKT"," CH_PROTOCOL_TMODE" );
 
@@ -306,12 +310,12 @@ ipmi_process_pkt( IPMI_WS * ws )
 			pkt->hdr.responder_lun = ( ( IPMI_TERMINAL_MODE_REQUEST * )( ws->pkt_in ) )->responder_lun;
 			pkt->hdr.req_data_len = ws->len_in - 3;
 
-			/* check if responder_lun is valid */
+			// check if responder_lun is valid
 			if( pkt->hdr.responder_lun + 1 > NUM_LUN )
 				completion_code = CC_INVALID_CMD;
 
 			break;
-			
+*/			
 		case IPMI_CH_PROTOCOL_ICMB:		/* ICMB v1.0 */
 		case IPMI_CH_PROTOCOL_SMB:		/* IPMI on SMSBus */
 		case IPMI_CH_PROTOCOL_KCS:		/* KCS System Interface Format */
@@ -373,8 +377,11 @@ ipmi_process_pkt( IPMI_WS * ws )
 					printf( "\n\tIPMB RESPONSE: [ " );
 					for( i = 0; i < ws->len_out; i++ ) {
 						printf("%02X ",((unsigned char *)ipmb_resp)[i]);
+            if(((i+1) % 24) == 0 ){
+              printf("$\n");
+            }
 					}
-					printf("]\n");
+					printf("]\n\n");
 				}
 			}
 			break;

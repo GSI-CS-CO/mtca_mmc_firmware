@@ -47,6 +47,16 @@ git_log=$(git log --oneline --decorate=no -n 5)
 gcc_version=$(arm-none-eabi-gcc --version | grep eabi)
 
 
+LIBTEXT=""
+
+# check if LIBERA_HS_EVENT_HACK is not defined
+LIBHACK=`cat ./LPC2136_FreeRTOS_CoreIPM/src/project_defs.h | grep LIBERA_HS_EVENT_HACK | grep "#define" | grep "//"`
+
+if [ -z "$LIBHACK" ]; then
+  LIBTEXT="-LIBERA-MOD"
+fi 
+
+
 build_id_file="./LPC2136_FreeRTOS_CoreIPM/src/build_id.h"
 
 
@@ -56,10 +66,10 @@ echo "#define MMC_BUILD_ID_H" >> $build_id_file
 echo " " >> $build_id_file
 
 # build info to header file
-echo "#define MMC_BUILD_ID \"\\"           >> $build_id_file
+echo "#define MMC_BUILD_ID \"\\"                >> $build_id_file
 echo "-- Build info -----------------------\n\\">> $build_id_file
 echo "Project     : FTRN AMC MMC\n\\"           >> $build_id_file
-echo "Build date  : $build_date\n\\"            >> $build_id_file
+echo "Build date  : $build_date$LIBTEXT\n\\"    >> $build_id_file
 echo "Prepared by : $git_user <$git_email>\n\\" >> $build_id_file
 echo "Source info : $git_source_info\n\\"       >> $build_id_file
 echo "OS version  : $os_info\n\\"               >> $build_id_file
@@ -102,7 +112,7 @@ author_name=`echo "By: $git_user <$git_email>"`
 
 
 echo "#define MMC_FW_INFO_2  \"$commit_hash\"" >> $fw_info_header
-echo "#define MMC_FW_INFO_3  \"$date_value\"" >> $fw_info_header
+echo "#define MMC_FW_INFO_3  \"$date_value$LIBTEXT\"" >> $fw_info_header
 echo "#define MMC_FW_INFO_4  \"$author_name\"" >> $fw_info_header
 
 echo "" >> $fw_info_header

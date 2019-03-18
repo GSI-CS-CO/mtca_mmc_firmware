@@ -28,10 +28,10 @@
 *.dylib
 
 # Executables
-*.afx
-*.out
-*.hex
-*.bin
+/LPC2136_FreeRTOS_CoreIPM/*/*.afx
+/LPC2136_FreeRTOS_CoreIPM/*/*.out
+/LPC2136_FreeRTOS_CoreIPM/*/*.hex
+/LPC2136_FreeRTOS_CoreIPM/*/*.bin
 
 # Debug files
 *.dSYM/
@@ -50,3 +50,8 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Scritp generated files
+/LPC2136_FreeRTOS_CoreIPM/src/build_id.h
+/LPC2136_FreeRTOS_CoreIPM/src/fw_info.h
+

@@ -24,12 +24,14 @@ support and contact details.
 -------------------------------------------------------------------------------
 */
 
+#include <stdio.h>
 #include "../drivers/arch.h"
 #include "timer.h"
 #include "error.h"
 #include "../critical.h"
+#include "../util/report.h"
 
-#define CQ_ARRAY_SIZE 32
+#define CQ_ARRAY_SIZE 16
 
 unsigned long lbolt;
 
@@ -40,6 +42,7 @@ typedef struct cqe_struct {
 	void ( *func )( unsigned char * );
 	unsigned char *arg;
 } CQE;
+
 
 CQE	cq_array[CQ_ARRAY_SIZE];
 
@@ -103,12 +106,12 @@ void timer_add_reserved(
         unsigned char *arg)
 {
         CRITICAL_START
-        if (cq_array[31].state == CQE_FREE) {
-                cq_array[31].state = CQE_ACTIVE;
-                cq_array[31].func = func;
-                cq_array[31].arg = arg;
-                cq_array[31].tick = ticks + lbolt;
-                cq_array[31].handle = handle;
+        if (cq_array[CQ_ARRAY_SIZE-1].state == CQE_FREE) {
+                cq_array[CQ_ARRAY_SIZE-1].state = CQE_ACTIVE;
+                cq_array[CQ_ARRAY_SIZE-1].func = func;
+                cq_array[CQ_ARRAY_SIZE-1].arg = arg;
+                cq_array[CQ_ARRAY_SIZE-1].tick = ticks + lbolt;
+                cq_array[CQ_ARRAY_SIZE-1].handle = handle;
         }
         CRITICAL_END
 }
@@ -120,7 +123,7 @@ void
 timer_remove_reserved()
 {
         CRITICAL_START
-        cq_array[31].state = CQE_FREE;
+        cq_array[CQ_ARRAY_SIZE-1].state = CQE_FREE;
         CRITICAL_END
 }
 
@@ -133,7 +136,7 @@ timer_add_callout_queue(
 	void *handle,
 	unsigned long ticks, 
 	void(*func)(unsigned char *), 
-	unsigned char *arg )
+	unsigned char *arg)
 {
 	CQE *cqe;
 
@@ -296,7 +299,11 @@ cq_alloc( void )
 void 
 cq_free( CQE *cqe )
 {
-	cqe->state = CQE_FREE;
+	cqe->state  = CQE_FREE;
+  cqe->tick   = 0; 
+  cqe->handle = 0; 
+  cqe->func   = 0;
+  cqe->arg    = 0;
 }
 
 /*==============================================================
@@ -314,6 +321,7 @@ cq_get_expired_elem( unsigned long current_tick )
 		ptr = &cq_array[i];
 		if( ( ptr->state == CQE_ACTIVE ) //&& ( ptr->tick )
 				&& ( current_tick >= ptr->tick ) ) {
+			debug(3, "TIMER","CQ expired %d", i);
 			cqe = ptr;
 			break;
 		}
@@ -328,5 +336,26 @@ void
 cq_set_cqe_state( CQE *cqe, unsigned state )
 {
 	cqe->state = state;
+}
+
+
+/*==============================================================
+ * cq_array_print()
+ *==============================================================*/
+void
+cq_array_print(void )
+{
+  int i;
+
+  printf("\nCQ ARRAY : lbolt=%d\n", lbolt);
+  printf("indx\tstate\ttick\thandle\tfunc\targ\n");
+  for(i = 0; i < CQ_ARRAY_SIZE; i++){
+    printf("[%02d]\t%d\t%6d\t%08x\t%08x\t%d\n", i, 
+                                        cq_array[i].state, 
+                                        cq_array[i].tick , 
+                                        cq_array[i].handle, 
+                                        cq_array[i].func,
+                                        cq_array[i].arg);
+  }
 }
 

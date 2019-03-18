@@ -507,7 +507,7 @@ module_sensor_init( void )
 	unsigned char dev_slave_addr =  module_get_i2c_address( I2C_ADDRESS_LOCAL );
 
 	//Init Management Controller Device Locator Sensor
-	sdr_init_mcdls("WRTR");
+	sdr_init_mcdls("FTRN");
 	g_SD_MCDLS.unavailable=0;
         g_SD_MCDLS.sensor_scanning_enabled=1;
         g_SD_MCDLS.scan_function = 0;

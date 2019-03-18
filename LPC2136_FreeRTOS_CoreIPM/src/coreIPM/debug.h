@@ -54,3 +54,8 @@ void dputstr( unsigned flags, char *str);
 #endif
 
 void puthex( unsigned char ch );
+
+
+void log_i2c_status(unsigned cmd_stat, unsigned data);
+void list_i2c_status_log(void);
+

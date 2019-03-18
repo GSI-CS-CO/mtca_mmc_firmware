@@ -42,6 +42,8 @@ void tsk_payload_monitor();
 /* Globals */
 
 void payload_init() {
+	
+    info(PAYLOAD_SUBSYSTEM,"Payload init!");
 	g_module_state.payload_state = PAYLOAD_IDLE;
 
 	//activate payload monitor
@@ -111,7 +113,6 @@ void enterIdle() {
 
 void tsk_payload_fsm() {
 
-//	printf("INFO[PAYLOAD]: Starting FSM task!\n");
 	info(PAYLOAD_SUBSYSTEM, "Starting FSM task!");
 
 	static int fsm_timeout;
@@ -411,7 +412,9 @@ unsigned int readAdc(unsigned char channel) {
  * procedure
  */
 void tsk_payload_monitor() {
-	info(PAYLOAD_SUBSYSTEM, "Monitor task started");
+
+	info(PAYLOAD_SUBSYSTEM, "Starting monitor task");
+
 	while (1) {
 		int pp12v = (readAdc(2) * 512) / 100; //12V goes over voltage divider, this is a recalc
 		int mp3v3 = (readAdc(3) * 136) / 100; //3V3 goes over voltage divider, this is a recalc
