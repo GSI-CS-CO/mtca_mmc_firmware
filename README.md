@@ -145,9 +145,59 @@ https://www.olimex.com/Products/ARM/JTAG/ARM-USB-OCD/
 https://www.olimex.com/Products/ARM/JTAG/ARM-JTAG-20-10/
 
 
+# Modification of MMC behaviour for compatibility with Libera
+
+Following REQ 3.54 from AMC specification, when MMC gets Management Power and FW initialization ends it checks the state of the Hot-Swap Handle, sends Hot-Swap (HS) event to MCH and arms periodic check of the HS handle.
+This means that MMC acts as master on the I2C IPMI-B bus. 
+Because Libera BCM does not support hot-plug/hot-swap it always acts as master on the IPMI-B bus and does not expect to receive any event messages from AMC MMCs but only responses to BCM requests, like sensor readings.
+Sending events to Libera BCM might also cause lockup of the BCM.
+On the other hand MCH in MTCA crates sends SET_EVENT_RECEIVER request to MMC when AMC is inserted or HS handle is closed. Libera BCM does not send this request. 
+Therefore SET_EVENT_RECEIVER request is used as a way for MMC to know if it is in a MTCA crate. 
+
+FW modification is implemented that changes MMC behaviour in the following way:
+- after MMC gets Management Power it DOES NOT check HS handle state and DOES NOT send HS event to MCH and DOES NOT arm periodical checking of the HS handle state.
+  Main point here is that MMC waits with checking of the HS handle until it is sure in what type of crate it is.
+
+- if in MTCA crate with managed PSU, MCH is notified by PSU that FTRN is inserted (hot pluged) and then MCH would start to communicate with MMC. MCH then sends SET_EVENT_RECEIVER request to MMC 
+  and from that MMC definetly knows that it is in the MTCA crate and not in Libera because Libera does not send this request. Then ONLY after receiving SET_EVENT_RECEIVER request
+  MMC checks HS handle state, sends HS event and arms periodical checking of the HS handle. 
+  After this MMC operates as it would without modification and hot swapping works normally.
+
+- in Libera, because SET_EVENT_RECEIVER request is not sent by Libera BCM, HS handle is never checked, periodical checking is never enabled and no HS event messages are sent out.
+  Opening or closing HS handle has no effect. 
+
+- if in MTCA crate with NON-managed PSU: this case was not tested yet but it is expected that FTRN payload would not turn on because MCH would not be aware of the FTRN presence in the crate.
+
+
+
+To enable modification code can be build with enabled LIBERA_HS_EVENT_HACK switch that is defined (uncommendted) in:
+ ./LPC2136_FreeRTOS_CoreIPM/src/project_defs.h
+
+By default this hack is enabled. 
+
+
+It can be checked in two ways if FW was build with Libera:
+1. connect to MMC console on the FTRN front panel (see next section) and press 'i' to print out build info. 
+
+-- Build info -----------------------
+Project     : FTRN AMC MMC
+Build date  : Mon Mar 18 16:09:13 CET 2019-LIBERA-MOD
+...
+
+If FW is built with Libera hack then "LIBERA-MOD" text is present at the end of the build date line.
+
+
+2. Use ipmitool to read out board info: 
+
+MMC_FW_INFO_3  "Build Date: Mon Mar 18 16:09:13 CET 2019-LIBERA-MOD"
+
+If FW is built with Libera hack then "LIBERA-MOD" text is present at the end of the build date line.
+
+
+
 # MMC console
 
-To observe MMC activity there is console available. Connect to FTRN via USB cable to the MMC USB connector (the one on the opposite side of the SFP and HotSwap handle).
+To observe MMC activity there is console available. Connect to FTRN via USB cable to the MMC USB connector (the one on the opposite side of the SFP and Hot-Swap handle).
 Device is visible on the USB bus as
 
     Bus xxx Device yyy: ID 0403:6015 Future Technology Devices International, Ltd Bridge(I2C/SPI/UART/FIFO)
@@ -162,14 +212,32 @@ Open device in terminal, example with minicom:
 Console outputs various information about MMC state and actions and currently supports this inputs:
 
 - h     : list commands
-- 0-9   : enables/disables debug prints, 0-debug prints disabled, 1-9 - debug print level enabled
 - i, I  : print out firmware build info (similar as eb-info)
+
+- R0-9  : enables/disables debug prints, 0-debug prints disabled, 1-9 - debug print level enabled.
+          To change debug print level first press "R" (SHIFT+r) then number 0-9
 - p     : disable PCIe port (asserts PCIe reset)
 - P     : enable PCIe port (if FTRN used outside crate, without MCH, on AMC>PCIe adapter)
 - l     : enable MMC LED test, turn all MMC LEDs OFF
 - L     : enable MMC LED test, turn all MMC LEDs ON
 - o     : disable MMC LED test (use this after done with L or l)
-- s     : display Freertos tasks and task statistics
+
+Debug tools
+- t     : display Freertos task list with status and stack info
+- q     : check IPMI bus I2C pin state
+- D     : change IPMI bus I2C pins to GPIO inputs (this way it can be seen if someone else is pulling SCL or SDA line low)
+- d     : change IPMI bus I2C pins to I2C (connect back I2C controller to pins after 'D' was used)
+- e     : disable IPMI bus I2C controller
+- E     : enable IPMI bus I2C controller
+- r     : reset IPMI bus I2C controller
+- b     : set IPMI bus I2C0 SCL frequency to 60k
+- B     : set IPMI bus I2C0 SCL frequency to 100k
+- w     : print ws_array states
+- u     : unclog ws array, remove all entries (removes all pending request, responses and events)
+- s     : list I2C0/IPMI-B bus activity log (
+- c     : print out Callout Queue array
+
+
 
 # OpenOCD
 
