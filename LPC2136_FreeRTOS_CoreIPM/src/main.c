@@ -104,6 +104,7 @@ static void tskHostType(){
 	g_module_state.host_type     = AMC_FTRN_HOST_NOT_EVALUATED;
   g_module_state.ipmi_amc_host = AMC_FTRN_HOST_NOT_EVALUATED;
 
+
 	info("HOST_TYPE","Init: host_type=%X", g_module_state.host_type);
 	on_delay  = 250;
 	off_delay = 250;
@@ -435,6 +436,8 @@ static void init_task(void* pvt){
 	info("INIT","Payload init!");
 	payload_init();
 	mmc_config_init();
+
+  printf(MMC_BUILD_ID);
 
 	// Create clock task
 	xTaskCreate(tskCoreIPM_hardclock, "IPMCLK",configMINIMAL_STACK_SIZE,0,4,0);
