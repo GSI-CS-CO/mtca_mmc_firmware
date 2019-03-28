@@ -18,7 +18,7 @@ LPCXpresso also needs addidional 32-bit packages. For Ubuntu 13.10 or later (inc
     sudo apt-get install libgtk2.0-0:i386 libxtst6:i386 libpangox-1.0-0:i386 \
          libpangoxft-1.0-0:i386 libidn11:i386 libglu1-mesa:i386 \
          libncurses5:i386 libudev1:i386 libusb-1.0:i386 libusb-0.1:i386 \
-    	 gtk2-engines-murrine:i386 libnss3-1d:i386
+         gtk2-engines-murrine:i386 libnss3-1d:i386
 
 More information can be found in the INSTALL.txt file that is included in the LPCXpresso installer package.
 
@@ -145,6 +145,21 @@ https://www.olimex.com/Products/ARM/JTAG/ARM-USB-OCD/
 https://www.olimex.com/Products/ARM/JTAG/ARM-JTAG-20-10/
 
 
+# OpenOCD
+
+We recommend to use OpenOCD version 0.9.0.
+
+## OpenOCD and Olimex OpenOCD JTAG ARM-USB-OCD-H
+
+In case you face problems like this: "Error: The specified debug interface was not found (ft2232)", you should try to build OpenOCD by yourself:
+
+  1. Check out/get version 0.9.0
+  2. $ ./configure --enable-ftdi
+  3. $ make
+  4. $ (sudo) make install
+  5. (Optional, copy udev rules file) $ (sudo) cp ./contrib/99-openocd.rules /etc/udev/rules.d/
+
+
 # Modification of MMC behaviour for compatibility with Libera
 
 Following REQ 3.54 from AMC specification, when MMC gets Management Power and FW initialization ends it checks the state of the Hot-Swap Handle, sends Hot-Swap (HS) event to MCH and arms periodic check of the HS handle.
@@ -161,7 +176,9 @@ FW modification is implemented that changes MMC behaviour in the following way:
 - if in MTCA crate with managed PSU, MCH is notified by PSU that FTRN is inserted (hot pluged) and then MCH would start to communicate with MMC. MCH then sends SET_EVENT_RECEIVER request to MMC 
   and from that MMC definetly knows that it is in the MTCA crate and not in Libera because Libera does not send this request. Then ONLY after receiving SET_EVENT_RECEIVER request
   MMC checks HS handle state, sends HS event and arms periodical checking of the HS handle. 
-  After this MMC operates as it would without modification and hot swapping works normally.
+
+  IMPORTANT: If HS handle is just opened and BLUE led turned ON and then HS handle is closed again without removing FTRN from the slot (not removing Management Power) FTRN might not turn on again!
+  To remove FTRN from crate open HS handle, wait until BLUE led stops blinking and turns ON. Then you have to remove FTRN from crate!
 
 - in Libera, because SET_EVENT_RECEIVER request is not sent by Libera BCM, HS handle is never checked, periodical checking is never enabled and no HS event messages are sent out.
   Opening or closing HS handle has no effect. 
@@ -189,6 +206,10 @@ If FW is built with Libera hack then "LIBERA-MOD" text is present at the end of 
 
 2. Use ipmitool to read out board info: 
 
+ipmitool -H [MCH IP] -A none fru print [FTRN FRU ID]
+
+response should include line: 
+
 MMC_FW_INFO_3  "Build Date: Mon Mar 18 16:09:13 CET 2019-LIBERA-MOD"
 
 If FW is built with Libera hack then "LIBERA-MOD" text is present at the end of the build date line.
@@ -206,7 +227,7 @@ and in /dev as ttyUSBx
 
 Open device in terminal, example with minicom:
 
-    minicom -b 115200 -D ttyUSB0
+    minicom -b 115200 -D /dev/ttyUSB0
 
 
 Console outputs various information about MMC state and actions and currently supports this inputs:
@@ -234,21 +255,47 @@ Debug tools
 - B     : set IPMI bus I2C0 SCL frequency to 100k
 - w     : print ws_array states
 - u     : unclog ws array, remove all entries (removes all pending request, responses and events)
-- s     : list I2C0/IPMI-B bus activity log (
+- s     : list I2C0/IPMI-B bus activity log
 - c     : print out Callout Queue array
 
 
 
-# OpenOCD
+When "s" was pressed to print out I2C0/IPMI-B bus activity log, three columns will be printed where columns are:
+1. index of the log ring buffer (last write to log is in the last row of the printed table)
+2. code of the I2CSTAT register
+3. if 00 then this write to log happened on I2C IRQ therefore see what is in column 2,
+   otherwise this was write to I2CONSET, I2CONCLR or I2C0DAT register (see also column 2)
 
-We recommend to use OpenOCD version 0.9.0.
-
-## OpenOCD and Olimex OpenOCD JTAG ARM-USB-OCD-H
-
-In case you face problems like this: "Error: The specified debug interface was not found (ft2232)", you should try to build OpenOCD by yourself:
-
-  1. Check out/get version 0.9.0
-  2. $ ./configure --enable-ftdi
-  3. $ make
-  4. $ (sudo) make install
-  5. (Optional, copy udev rules file) $ (sudo) cp ./contrib/99-openocd.rules /etc/udev/rules.d/
+Codes in column 2 are (see also ./LPC2136_FreeRTOS_CoreIPM/src/coreIPM/i2c.h):
+FF 	I2STAT_NADDR_SLAVE_MODE
+FE 	I2STAT_START_MASTER
+08 	I2STAT_START_SENT
+10 	I2STAT_REP_START_SENT
+38 	I2STAT_ARBITRATION_LOST
+18 	I2STAT_SLAW_SENT_ACKED
+20 	I2STAT_SLAW_SENT_NOT_ACKED
+28 	I2STAT_MASTER_DATA_SENT_ACKED
+30 	I2STAT_MASTER_DATA_SENT_NOT_ACKED
+40 	I2STAT_SLAR_SENT_ACKED
+48 	I2STAT_SLAR_SENT_NOT_ACKED
+50 	I2STAT_MASTER_DATA_RCVD_ACKED
+58 	I2STAT_MASTER_DATA_RCVD_NOT_ACKED
+06 	I2STAT_SLAW_RCVD_ACKED
+68 	I2STAT_ARB_LOST_SLAW_RCVD_ACKED
+70 	I2STAT_GENERAL_CALL_RCVD_ACKED
+78 	I2STAT_ARB_LOST_GENERAL_CALL_RCVD_ACKED
+80 	I2STAT_SLAVE_DATA_RCVD_ACKED
+88 	I2STAT_SLAVE_DATA_RCVD_NOT_ACKED
+90 	I2STAT_GENERAL_CALL_DATA_RCVD_ACKED
+98 	I2STAT_GENERAL_CALL_DATA_RCVD_NOT_ACKED
+A0 	I2STAT_STOP_START_RCVD
+A8 	I2STAT_SLAR_RCVD_ACKED
+B0 	I2STAT_ARB_LOST_SLAR_RCVD_ACKED
+B8 	I2STAT_SLAVE_DATA_SENT_ACKED
+C0 	I2STAT_SLAVE_DATA_SENT_NOT_ACKED
+C8 	I2STAT_LAST_BYTE_SENT_ACKED
+F8 	I2STAT_NO_INFO
+00 	I2STAT_BUS_ERROR
+01 	I2CONSET_WRITE
+02 	I2CONCLR_WRITE
+04 	I2C0DAT_WRITE
